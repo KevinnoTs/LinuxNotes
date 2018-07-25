@@ -1,24 +1,10 @@
 Linux 学习笔记
 
-一、环境搭建：
-1. CentOS四个组件：Basic、Compatibility libraries、Debugging tools、Development tools
-硬盘分区选择标准分区，建议选择xfs或ext4
-
-2. SecureCRT：
-选项--会话选项：
-仿真--终端Linux--勾选ANSI--不勾选使用颜色方案--回滚行32000
-外观--勾选使用颜色--选择颜色（建议绿）--光标样式（块）--字符编码UTF-8--勾选使用Unicode
-日志--session_%S_%Y_%M_%D.log--在连接上开始记录日志--追加到文件
-选项--全局选项：
-ANSI颜色
-
-3. Noetpad++搜索引擎：https://www.baidu.com/#ie={inputEncoding}&wd=$(CURRENT_WORD)
-
-二、常用命令
+常用命令
 1. 	yum 安装程序包
+		-y：取消安装过程中的确认
 	#yum install -y tree
 		安装tree命令
-			-y：取消安装过程中的确认
 		ntpdate
 		lrzsz
 		nmap
@@ -399,7 +385,7 @@ ANSI颜色
 		永久关闭防火墙，即关闭自启动（CentOS 7），CentOS 6及以前用chkconfig iptables off
 	#systemctl restart sshd.service
 		重启ssh服务（CentOS 7+），CentOS 6及以前使用/etc/init.d/sshd restart
-	#systemctl restart network.serivce
+	#systemctl restart network.service
 		重启网络设置，相当于没有返回值的service network restart
 		因该命令影响所有网卡，生产环境建议使用#ifdown ens32 && ifup ens32，这样只针对单独网卡（&&表示前面命令正确执行后运行后面命令）
 	#systemctl list-units
@@ -1281,25 +1267,3 @@ Linux开机启动过程
 		/etc/rc.d/rc3.d/		根据运行级别运行该级别下的脚本
 			该目录下链接文件名字开头S为Start运行，K为Kill关闭，后面为脚本文件所在地址
 	7、	启动mingetty，进入登录界面
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
