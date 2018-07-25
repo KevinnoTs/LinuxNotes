@@ -1,1 +1,1305 @@
 Linux 学习笔记
+
+一、环境搭建：
+1. CentOS四个组件：Basic、Compatibility libraries、Debugging tools、Development tools
+硬盘分区选择标准分区，建议选择xfs或ext4
+
+2. SecureCRT：
+选项--会话选项：
+仿真--终端Linux--勾选ANSI--不勾选使用颜色方案--回滚行32000
+外观--勾选使用颜色--选择颜色（建议绿）--光标样式（块）--字符编码UTF-8--勾选使用Unicode
+日志--session_%S_%Y_%M_%D.log--在连接上开始记录日志--追加到文件
+选项--全局选项：
+ANSI颜色
+
+3. Noetpad++搜索引擎：https://www.baidu.com/#ie={inputEncoding}&wd=$(CURRENT_WORD)
+
+二、常用命令
+1. 	yum 安装程序包
+	#yum install -y tree
+		安装tree命令
+			-y：取消安装过程中的确认
+		ntpdate
+		lrzsz
+		nmap
+		dos2unix
+		telnet
+		sysstat
+		screen
+	#yum update
+		更新所有程序包，相当于windows update
+	#yum groupinstall "Base" "Compatibility libraries" "Debugging tools" "Development tools"
+		如果安装过程中没选择组件，可以进入系统后通过yum命令安装
+	#yum grouplist:
+	Installed Groups:
+	   Base
+	   Compatibility libraries
+	   Debugging Tools
+	   Development tools
+	   E-mail server
+	   Graphical Administration Tools
+	   Hardware monitoring utilities
+	   Legacy UNIX compatibility
+	   Networking Tools
+	   Performance Tools
+	   Perl Support
+	   Scientific support
+	   Security Tools
+
+2. 	cd 进入目录（Change directory）
+	Usage: cd [dir]
+	路径：
+	相对路径：不从/根开始
+	绝对路径：从/根开始
+		/ 		为根目录
+		~ 		为用户家目录
+		. 		为本目录
+		..		为上一级目录
+		../.. 	为上一级的上一级目录
+		-		为上一次目录（$OLDPWD）
+	#cd /data
+		进入根目录下的data目录
+	#cd -
+		回到上一次所在目录
+
+3. 	alias 系统别名的查看及修改
+	#alias
+		查看系统现有别名
+	#alias cp='cp -i'
+		添加一条别名，使用cp命令默认带-i参数
+	#unalias cp
+		删除cp的别名
+	#alias rm='echo This command is not allowed to use.'
+		添加一条别名，使用rm命令时显示该命令禁止使用
+	#source ~/.bashrc
+		读取文件恢复内存中别名默认设置
+
+4. 	LANG 设置系统语言
+	#LANG=en
+		设置系统语言为英文
+	#LANG="en_US.UTF-8"
+		设置系统语言为英文
+	#echo $LANG
+		显示现在系统语言
+	#echo "LANG=zh_CN.UTF-8" > /etc/sysconfig/i18n
+		将语言设置为中文字符集并修改进配置文件
+	#source /etc/sysconfig/i18n
+		从配置文件中恢复语言设置
+
+5. 	ifconfig 查看网络配置
+	#ifconfig
+		查看当前网络配置，类似windows中的ipconfig
+	#ip add
+		查看所有网卡信息，与ifconfig类似
+	#ifconfig | sed -n "2p"
+        inet 192.168.137.188  netmask 255.255.255.0  broadcast 192.168.137.255
+		查看并提取ip地址相关信息（显示第二行）
+
+6. 	ifup	获取ip
+	#ifdown ens32
+	#ifup ens32
+		相当于禁用网卡再启动
+	#ifdown ens32 && ifup ens32
+		重启ens32这块网卡，比service network restart好在不影响其他网卡
+
+7. 	service network restart 重启网络服务
+	#service network restart
+		重启网络服务
+
+8. 	nmcli conn 查看网卡的UUID
+	#nmcli conn
+	NAME   UUID                                  TYPE      DEVICE
+	ens32  0b3d9154-8a08-4bd9-aee9-26e124dedaf0  ethernet  ens32
+	ens34  95044a39-6fb1-3963-8a9f-cd8403e79348  ethernet  ens34
+		查看所有网卡的UUID
+
+9. 	route 来显示并设置网络路由表
+		-A 设置地址类型
+		-C 打印将Linux核心的路由缓存
+		-v 详细信息模式
+		-n 不执行DNS反向查找，直接显示数字形式的IP地址
+		-e netstat格式显示路由表
+		-net 到一个网络的路由表
+		-host 到一个主机的路由表
+		Add 增加指定的路由记录
+		Del 删除指定的路由记录
+		Target 目的网络或目的主机
+		gw 设置默认网关
+		mss 设置TCP的最大区块长度（MSS），单位MB
+		window 指定通过路由表的TCP连接的TCP窗口大小
+		dev 路由记录所表示的网络接口
+	#route -n
+		查看路由表
+		route(选项)(参数)
+
+10. cat 文本输出，包括显示文件、创建文件、合并文件（Concatenate）
+		-n 对输出行编号
+		-b 对输出非空行编号
+		-s 连续空白行替换成一行空白行
+	#cat /etc/sysconfig/network-scripts/ifcfg-ens32
+		查看网卡配置文件
+	#cat >>/etc/sysconfig/network-scripts/ifcfg-ens32<<EOF
+	DNS1=114.114.114.114
+	EOF
+		往网卡配置文件里增加信息
+	#cat a.txt > b.txt
+		把a.txt文件输出到b.txt中
+	#cat a.txt b.txt >> c.txt
+		把a.txt和b.txt的内容附加到c.txt中
+
+11. vi/vim 文本编辑器（Visual editor/Visual editor improved）
+		a/i/o 进入编辑模式
+		ESC 退出编辑模式
+		dd 命令行模式删除当前行
+		yy 复制当前行
+		p 粘贴复制行
+		:w 保存（write）
+		:q 退出（quit）
+		:wq 保存退出
+		:wq! 保存并强制退出
+	#vi /etc/sysconfig/network-scripts/ifcfg-ens32
+		编辑网卡配置文件
+
+12. ls 查看目录（List）相当于windows的dir
+		-C 多列显示输出结果，默认参数
+		-l 单列显示输出结果（use a Long listing format），ls -l可以缩写成ll
+		-h 结合-l使用，将文件大小换算成方便阅读的单位（with -l, print sizes in Human readable format）
+		-d 只显示目录 （list Directory entries instead of contents）
+		-a 显示所有文件包括隐藏文件（All），默认.开头的文件都是隐藏的，不显示
+		-F 给不同类型加不同标识 （append indicator (one of */=>@|) to entries）
+		-p 给文件夹加/标识 （append / indicator to directories）
+		-t 按修改时间排序（sort by modification Time）
+		-r 倒序排列（Reverse order while sorting）
+		-i 查看inode节点 （print the index number of each file）
+		--color==auto 列表显示颜色（也可以用在grep中）
+
+		如何查看文件夹，忽略文件：
+			1、ll查看，第一列以d开头的是文件夹 --> ll | grep "^d" （^表示以什么开头的）
+			2、ll查看，第二列大于1（当文件没有硬链接的情况下） --> ll | awk '{if($2>1&&$1!="total") print $0}'
+			3、ll查看，名字颜色（默认是深蓝色） --> 眼看...
+			4、ls -F或ls -p查看，结尾是/的（-F是区分属性，-p是只给目录加/） --> ls -F | grep "/$" （$表示以什么结尾的）
+			5、find查找类型为-d的 --> find ./* -maxdepth 0 -type d 或 find . -maxdepth 1 -type d ! -name '.'
+			6、ls -dl */
+			7、ll | sed -n '/^d/p'
+			8、ll | awk '/^d/'
+			9、ls -F | sed -n '/\/$/p'
+			10、ls -F | awk '/\/$/'
+	#ls
+		查看当前目录下文件夹及文件，平铺模式
+	#ll
+		查看当前目录下文件夹及文件，列表模式，（=ls -l）
+	#ls -lrt
+		按时间排序
+
+13. mkdir 创建目录（Make directory）
+	Usage: mkdir [OPTION]... DIRECTORY...
+		-p 忽略报错/递归，连续创建目录
+		-v 显示创建目录的结果或过程
+	#mkdir /data
+		根目录下创建data文件夹
+	#mkdir data
+		该目录下创建data文件夹
+	#mkdir -p /data/K/test1/ /data/K/test2
+		依次在根目录下创建data，在data下创建K，在K下创建test1和test2目录
+
+14. pwd 查看当前目录路径（Print working directory）
+		-L 显示路径，默认参数
+		-P 显示物理路径，忽略快捷方式
+	#pwd
+		查看当前目录路径，相当于echo $PWD
+
+15. touch 创建文件或更新时间戳
+	Usage: touch [OPTION]... FILE...
+		创建文件不需要参数
+		-a 只改变访问时间
+		-m 只改变修改时间
+	#touch /data/k.txt
+		在根目录的data目录下创建k.txt文件，如该文件存在，只更新时间
+	#touch /data/K/test1/test{1..20}.txt
+		在/data/K/test1目录下创建test1.txt、test2.txt、test3.txt、...、test20.txt，{}为序列
+	#stat /data/k.txt
+		查看/data/k.txt的文件属性
+
+16. rm 删除文件或文件夹（ReMove）
+		-f 强制删除 （Force）
+		-r 删除目录 （Recursive）
+		-i 删除前提示
+	#rm -f /data/K/test1/*
+		删除/data/K/test1目录下所有文件
+	★★★该命令无法撤销无法恢复，操作前请确认并备份★★★
+	建议如果非必要，使用mv命令移动到/tmp/目录
+	如果非要删除，建议cd进入当前目录，使用find . -type f(d) -name "" | xargs rm -i删除，进入当前路径，避免删错
+
+17. echo 打印/输出
+		-e 激活转义字符
+		\n 回车
+	#echo 'Hello world!!' >/data/k.txt
+		将Hello world!!输出到/data/k.txt中，如果没有该文件则创建，存在该文件则覆盖其中内容
+	#echo 'This is the last line.' >>/data/a.txt
+		将This is the last line.追加到/data/a.txt中，如果没有该文件则创建
+	★★★该命令无法撤销无法恢复，操作前请确认并备份★★★
+	#echo -e "\e[1;31mThis is red text\e[0m"
+		输出红色文字This is red text，\e[1;31m为设置字体颜色为红色，\e[0m为重置字体颜色
+		字体颜色码：重置=0，黑色=30，红色=31，绿色=32，黄色=33，蓝色=34，洋红=35，青色=36，白色=37
+		背景颜色码：重置=0，黑色=40，红色=41，绿色=42，黄色=43，蓝色=44，洋红=45，青色=46，白色=47
+
+18. clear 清屏
+	#clear
+		清屏，相当于快捷键Ctrl+l
+
+19. tr 替换
+	#echo 1 2 3 4 >/data/k.txt
+	#tr ' ' '\n' </data/k.txt
+	1
+	2
+	3
+	4
+		将/data/k.txt中的空格替换成换行，内容并未写入k.txt中，只是将输出结果替换
+
+20. tree 树命令，查看目录结构
+	Usage: tree [OPTION]... DIRECTORY...
+		-a 显示所有文件，包括隐藏文件（Linux中以.开头的文件即隐藏文件）
+		-d 只显示目录，不显示文件
+		-L 显示目录层级（-L n）
+		-f 为每一个文件显示完整的路径
+		-i 不显示树枝，文件或文件夹名（-i一般情况下与-f参数一起使用）
+		-F 区分文件及文件夹，文件夹后有/
+	#tree -L 2
+		显示本目录的目录结构，只显示2层目录
+	#tree -fi /data
+		显示/data目录下所有文件的完整路径
+
+21.	uname 打印系统信息
+	Usage: uname [OPTION]...
+		-m 查看系统位数
+		-n 显示主机名
+		-r 查看kernel版本
+		-a 查看全部信息
+	#uname -r
+		查看kernel内核版本，3.10.0-862.6.3.el7.x86_64
+	#uname -m
+		查看32位还是64位，x86_64
+	#uname -a
+	Linux KS-CENTOS7 3.10.0-862.6.3.el7.x86_64 #1 SMP Tue Jun 26 16:32:21 UTC 2018 x86_64 x86_64 x86_64 GNU/Linux
+		查看系统全部信息
+	#cat /etc/redhat-release
+		查看系统版本信息，CentOS Linux release 7.5.1804 (Core)
+
+22.	hostname 显示和设置主机名，默认是显示主机名
+	#hostname
+		显示主机名
+	#hostname KS
+		临时设置主机名
+
+23.	useradd 创建用户
+	Usage: useradd [options] LOGIN
+	#useradd KevinnoTs
+		创建用户KevinnoTs
+
+24. passwd 修改密码
+	Usage: passwd [OPTION...] <accountName>	
+	#passwd KevinnoTs
+		修改KevinnoTs密码（交互式，可以用户自己操作）
+	#echo "qwert123" | passwd --stdin KevinnoTs
+		通过命令非交互式修改密码（非交互式，只可以root操作）
+
+25.	su 切换用户
+	Usage: su [options] - [USER [arg]...]
+	#su - KevinnoTs
+		切换用户，切记加“-”	
+26. whoami 打印当前用户
+	#whoami
+		查看当前用户，相当于id -un
+
+27.	ps 进程查看命令
+	Usage: ps [options]
+		-A 查看所有进程，同-e
+		-e 查看所有进程，同-A
+		-f 生成完整输出
+	#ps -l
+	F S   UID    PID   PPID  C PRI  NI ADDR SZ WCHAN  TTY          TIME CMD
+	4 S     0   1423   1419  0  80   0 - 28858 do_wai pts/0    00:00:00 bash
+	0 R     0   1460   1423  0  80   0 - 38300 -      pts/0    00:00:00 ps
+		将目前属于本用户这次登入的PID与相关信息列示出来
+		F 		代表这个程序的旗标 (flag)， 4 代表使用者为 superuser
+		S 		代表这个程序的状态 (STAT)
+		UID		代表执行者身份
+		PID		进程的ID号
+		PPID 	父进程的ID
+		C 		CPU使用的资源百分比
+		PRI 	指进程的执行优先权(Priority的简写)，其值越小越早被执行
+		NI 		这个进程的nice值，其表示进程可被执行的优先级的修正数值
+		ADDR 	这个是内核函数，指出该程序在内存的哪个部分。如果是执行的程序，一般就是“-”
+		SZ 		使用掉的内存大小
+		WCHAN 	目前这个程序是否正在运行当中，若为“-”表示正在运行
+		TTY 	登入者的终端机位置
+		TIME 	使用掉的 CPU 时间
+		CMD 	所下达的指令名称
+	#ps aux
+	USER        PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND
+	root          1  0.2  0.6 128396  6968 ?        Ss   20:07   0:01 /usr/lib/systemd/systemd
+	root          2  0.0  0.0      0     0 ?        S    20:07   0:00 [kthreadd]
+	......
+		列出目前所有的正在内存当中的程序
+		USER：该进程属于那个使用者账号
+		PID ：该进程的进程ID号
+		%CPU：该进程使用掉的 CPU 资源百分比
+		%MEM：该进程所占用的物理内存百分比
+		VSZ ：该进程使用掉的虚拟内存量 (Kbytes)
+		RSS ：该进程占用的固定的内存量 (Kbytes)
+		TTY ：该进程是在那个终端机上面运作，若与终端机无关，则显示“?”
+			  另外，“tty1-tty6” 是本机上面的登入者程序，若为“pts/0”等等的，则表示为由网络连接进主机的程序。
+		STAT：该程序目前的状态，主要的状态有：
+				R ：该程序目前正在运作，或者是可被运作
+				S ：该程序目前正在睡眠当中，但可被某些讯号(signal) 唤醒
+				T ：该程序目前正在侦测或者是停止了
+				Z ：该程序应该已经终止，但是其父程序却无法正常的终止他，造成 zombie (僵尸) 程序的状态
+		START：该进程被触发启动的时间
+		TIME ：该进程实际使用 CPU 运作的时间
+		COMMAND：该程序的实际指令
+	#ps -ef | grep ssh
+		查看有关ssh的进程
+
+28.	netstat 显示各种网络相关信息
+		-a (all)显示所有选项，默认不显示LISTEN相关
+		-l 仅列出有在 Listen (监听) 的服务状态
+		-n 拒绝显示别名，能显示数字的全部转化成数字
+		-t (tcp)仅显示tcp相关选项
+		-u (udp)仅显示udp相关选项
+		-p 显示建立相关链接的程序名
+		-r 显示路由信息，路由表
+		-e 显示扩展信息，例如uid等
+		-s 按各个协议进行统计
+		-c 每隔一个固定时间，执行该netstat命令
+	#netstat -lntup | grep ssh
+		查看所有正在监听的tcp、udp所有关于ssh的进程，并显示数字代替别名，且显示建立相关链接的程序名
+	#netstat -an | grep 192
+		查看所有连接信息中包括192的信息（一般情况下用他来表示局域网内连接信息，前提是局域网ip地址以192开头）
+
+29.	systemctl 系统服务管理器指令，它实际上将 service 和 chkconfig 这两个命令组合到一起
+	Usage: systemctl [OPTIONS...] {COMMAND} ...
+		start 启动服务
+		stop 关闭服务
+		enable 设置开机自启动
+		disable 停止开机自启动
+		restart 重启服务
+		reload 从新加载配置
+		mask 冻结服务
+		unmask 解冻服务
+		status 查看服务状态
+	#systemctl stop firewalld.service
+		关闭防火墙（CentOS 7+），CentOS 6及以前使用/etc/init.d/iptables stop
+	#systemctl status firewalld.service
+		查看防火墙进程（CentOS 7+），CentOS 6及以前使用/etc/init.d/iptables status
+	#systemctl list-unit-files | grep firewalld.service
+		查看防火墙自启状态（CentOS 7+）
+	#systemctl disable firewalld.service
+	Removed symlink /etc/systemd/system/multi-user.target.wants/firewalld.service.
+	Removed symlink /etc/systemd/system/dbus-org.fedoraproject.FirewallD1.service.
+		永久关闭防火墙，即关闭自启动（CentOS 7），CentOS 6及以前用chkconfig iptables off
+	#systemctl restart sshd.service
+		重启ssh服务（CentOS 7+），CentOS 6及以前使用/etc/init.d/sshd restart
+	#systemctl restart network.serivce
+		重启网络设置，相当于没有返回值的service network restart
+		因该命令影响所有网卡，生产环境建议使用#ifdown ens32 && ifup ens32，这样只针对单独网卡（&&表示前面命令正确执行后运行后面命令）
+	#systemctl list-units
+		列出当前系统服务的状态
+	#systemctl list-unit-files
+		列出服务的开机状态
+	#systemctl status network.service | grep Active:
+		只显示网络设置中的Active那一行信息
+			loaded				系统服务已经初始化完成，加载过配置
+			active（running）	正有一个或多个程序正在系统中执行，vsftpd就是这种模式
+			atcive（exited）	仅执行一次就正常结束的服务，目前并没有任何程序在系统中执行
+			atcive（waiting）	正在执行当中，不过还在等待其他事件才能继续处理
+			inactive			服务关闭
+			enbaled				服务开机启动
+			disabled			服务开机不自启
+			static				服务开机启动项不可被管理
+			failed				系统配置错误
+
+30.	telnet 明文登录、管理远程主机
+	Usage: telnet [OPTIONS...] [host-name [port]]
+	#telnet 192.168.31.88 22
+		telnet命令测试22端口
+
+31.	lrzsz 一个unix通信套件提供的X，Y，和ZModem文件传输协议
+	#yum install -y lrzsz
+		安装lrzsz
+	#rz
+		上传文件到服务器当前目录
+	#sz filename
+		下载filename到本地默认下载目录，SecureCRT可以在选项--全局选项--文件传输--选项中设置默认上传及下载路径
+
+32.	shutdown 关机/重启（仅限root用户，比较安全的关机或重启方法）
+	Usage: shutdown [OPTIONS...] [TIME] [WALL...]
+		-h 关机
+		-r 重启
+		-c 取消关机/重启倒计时
+	#shutdown -h now
+		现在关机
+	#shutdown -r now
+		现在重启
+	其他关机命令：
+	#halt
+	#poweroff
+	#init 0
+	其他重启命令：
+	#reboot
+	#init 6
+
+33.	history	历史
+	#history
+		查看输入命令的历史
+	#history -c
+		清除所有历史命令
+	#history -d n
+		清除第n条历史命令
+	#!n
+		重新调用第n条历史命令
+	#!x
+		上一条以x字母开头的历史命令
+	#cat ~/.bash_history
+		查看历史记录文件
+	#export HISTSIZE=20
+		命令行历史记录数量（临时生效，永久生效 ehco 'export HISTSIZE=20' >>/etc/profile，然后source /etc/profile）
+	#export HISTFILESIZE=100
+		命令行历史文件的记录数量~/.bash_history（临时生效,永久生效 ehco 'export HISTFILESIZE=50' >>/etc/profile，然后source /etc/profile）
+
+34.	hostname 主机名
+	#hostname
+		查看主机名
+	#hostname TestVM1
+		设置当前主机名，立即生效
+	#hostnamectl set-hostname TestVM1
+		永久设置主机名为TestVM1并立即生效（CentOS 7+）
+	#vim /etc/sysconfig/network
+		编辑network文件修改hostname行，重启生效（CentOS 6及以前版本）
+
+35. mount 挂载，所有新接入设备如果不挂载就不能被Linux访问
+
+	#mount /dev/cdrom /mnt/cdrom
+		将CDROM挂在到/mnt/cdrom目录了
+	#df -h
+	Filesystem      Size  Used Avail Use% Mounted on
+	/dev/sda3        18G  1.4G   17G   8% /
+	devtmpfs        479M     0  479M   0% /dev
+	tmpfs           489M     0  489M   0% /dev/shm
+	tmpfs           489M  6.6M  482M   2% /run
+	tmpfs           489M     0  489M   0% /sys/fs/cgroup
+	/dev/sda1       197M   98M  100M  50% /boot
+	tmpfs            98M     0   98M   0% /run/user/1000
+	/dev/sr0        4.3G  4.3G     0 100% /mnt/cdrom
+		查看所有挂载设备
+	#cat /etc/fstab
+		查看系统默认挂载点
+	#fdisk -l
+		查看硬盘分区
+		
+36. blkid 查看磁盘UUID（只能root用户）
+	#blkid
+	/dev/sr0: UUID="2017-09-06-10-51-00-00" LABEL="CentOS 7 x86_64" TYPE="iso9660" PTTYPE="dos" 
+	/dev/sda1: UUID="111da2b8-ef17-448c-ac9a-12ec8b94dbc5" TYPE="xfs" 
+	/dev/sda2: UUID="fd84ea2c-60c1-4340-bdc0-3a1766de7582" TYPE="swap" 
+	/dev/sda3: UUID="87f479e2-fdc4-49be-b1f9-a0e95107b0aa" TYPE="xfs" 
+		查看所有磁盘设备（分区）的UUID
+
+37. cp 复制拷贝文件或目录（CoPy）
+	Usage: cp [OPTION...] SOURCE... DIRECTORY
+		-a 递归复制并保留其属性，包括链接，-dpr
+		-d 复制链接属性 （no Dereference）
+		-p 保留源文件或目录的属性 （Preserve the specified attributes）
+		-r 递归，复制目录需要加（recursive）
+		-f 强行复制文件或目录，不论目标文件或目录是否已存在 （force）
+		-i 覆盖既有文件之前先询问用户（默认状态下，-i是写进cp别名中的，也就是默认带该属性，可用\CP命令忽略-i属性） （Interactive: prompt before overwrite）
+		-u 只有源文件比目标文件更新或目标文件不存在才复制
+		-b 覆盖已存在的文件目标前将目标文件备份
+		-v 详细显示命令执行的操作
+	#cp /data/k.txt /tmp/
+		复制ktxt到/tmp文件夹
+	#cp file /tmp/file1
+		将file文件复制到/tmp目录下并改名为file1
+	#cp -r /data/ /tmp/
+		复制/data文件夹到/tmp文件夹
+	#cp -a file{3,5}.txt
+		将file3复制并改名为file5，保留其属性
+	#cp /etc/ssh/sshd_config{,.ori}
+		将该文件备份为.ori
+
+38. mv 剪切或重命名（MoVe (rename) files）
+	Usage: mv [OPTION]... SOURCE... DIRECTORY
+		-i 覆盖前提示 （Interactive: prompt before overwrite）
+	#mv /home/cc/test/data/ks/ /tmp/
+		将/home/cc/test/data/ks文件夹移动到/tmp下
+	#mv file{4,6}.txt
+		将file4改名为file6
+
+39. find 查找（五星级命令）
+	Usage: find [-H] [-L] [-P] [path...] [expression]
+		[-H] [-L] [-P] 表示如何处理符号链接
+		[path...] 为查找路径
+		[expression] 包括参数（options）、限定条件（tests）、执行动作（actions）
+	-maxdepth 查目录深度（find ./ -maxdepth 1 -type d 为查当前目录下的文件夹）
+	-type 文件类型（包括f:file，d:directory，c:character，b:block）
+	-name 文件名，双引号引起来可使用通配符，-name前加!为取反
+	-mtime 修改时间（+n为n天前，-n为n天内，n为之前第n天）
+	-size<文件大小> 查找符合指定的文件大小的文件，+1M为大于1MB，-1M为小于1MB
+	-exec 将查询结果执行，以{} \;结尾（-ok比-exec多一个执行过程显示）{}代表的是前面find查找到的内容，所以mv等命令在{}后接目标路径
+	-ok 将结果执行，但会需要用户确认，以{} \;结尾
+	-a 交集
+	-o 并集
+	! 取反
+	#find /home/cc/test/ -type f -name test.txt
+		查找/home/cc/test/及其子目录下名为test.txt的文件
+	#find /home/cc/test/ -type f ! -name "*.txt" | xargs rm -f
+		删除该目录及子目录下所有不是txt的文件
+	#find /home/cc/test/ -type f -name "1.*" -a -name "*.jpg" 
+	/home/cc/test/data/1.jpg
+		查找目录及子目录下名字带1的所有jpg文件
+	#mv `find /home/cc -type f -name "1.txt"` /tmp/ks/
+		查找/home/cc目录下这个文件并移动到/tmp/ks下
+	#find $HOME/. -name "*.txt" -exec cat {} \; > /tmp/ks/all.txt
+		将当前用户家目录下所有txt文件内容连起来存在/tmp/ks目录下的all.txt中
+	#find /home/cc/ -name "3.txt" -ok rm {} \;
+		删除/home/cc目录及子目录下名为3.txt的文件
+	#find . -type f -name "*.txt" -ok mv {} dir1/ \;
+		将本目录下的所有txt文件移动到dir1目录下，移动每个文件时需要确认
+
+40. xargs 读取输入数据重新格式化后输出
+		-n 格式化几列，默认为所有内容一行输出，如：-n 2位格式化为两列
+		-i 将输出一行一行的赋值给{}，让不支持批处理的命令按行执行
+	#cat k.txt
+	a b c d
+	e f g
+	h i j k l
+	m n
+	o
+	p
+	q r s t
+	u v
+	w
+	x y z
+	#cat k.txt | xargs
+	a b c d e f g h i j k l m n o p q r s t u v w x y z
+		将文本中内容格式化为一行
+	#cat k.txt | xargs -n 3
+	a b c
+	d e f
+	g h i
+	j k l
+	m n o
+	p q r
+	s t u
+	v w x
+	y z
+		将内容格式化为三列
+	#echo "nameXnameXnameXname" | xargs -dX -n2
+	name name
+	name name
+		将内容中X替换为空格，并分两列显示
+	#find /home/cc -type f | grep -v ".b" | xargs -n 2
+	/home/cc/test/data/1.txt /home/cc/test/data/2.txt
+	/home/cc/test/data/3.txt /home/cc/test/data/k.txt
+		查找/home/cc及其子目录下所有文件，除文件名中带有“.b”的，其他文件分两列显示
+
+41. grep 过滤
+		-v 过滤，除去其所在行，其他行输出
+		-i 不区分大小写
+		-n 对匹配内容增加行号
+		-B 除了显示匹配一行外，并显示该行之前的num行（Before）
+		-A 除了显示匹配一行外，并显示该行之前的num行（After）
+		-C 除了显示匹配一行外，并显示该行之前的num行（Context）
+		-E 过滤多个条件（等于egrep）
+		--color==auto 过滤结果标记为红色
+	#grep 'haha' /data/k.txt
+		显示/data/k.txt文件中包含“haha”的行
+	#grep -v 'hello' /data/k.txt
+		显示/data/k.txt中不包含hello的行
+	#grep -E "3306|1521" /etc/services
+	#egrep "3306|1521" /etc/services
+		同时过滤两个端口
+
+42. sed 流编辑器，可实现增删改替查等操作
+		命令：
+		s 替换
+		g 处理文件中的所有匹配
+		p 打印行
+		d 删除选择的行
+		参数：
+		-i 保存到文件
+		-n/--quiet/——silent 仅显示script处理后的结果
+		符号：
+		^ 行开始，/^cc/，表示以cc开头的行
+		$ 行结束，/ks$/，表示以ks结尾的行
+		. 匹配一个非换行符的任意字符
+		* 任意字符
+		\(..\) 匹配子串，并保存匹配的字符，使用\1输出，如s/\(love\)able/\1rs/，loveable被替换成lovers
+		[] 制定范围内的字符，/[Kk]s/表示Ks和ks都匹配
+		[^] 除制定范围内的字符，/[^1-8a-z]/表示除1-8数字和小写字母以外其他均匹配，包括空格、符号大写字母等
+		
+		定界符：
+		/ : | #
+	#sed 's/hello/hi/' a.txt
+	hi world
+		s命令为替换，将a.txt中的hello，替换为hi，不写入文件只输出
+	#sed -n 's/hello/hi/p' a.txt
+	hi world
+		-n与p命令结合，只显示处理的行，不显示其他内容，不写入文件只输出
+	#sed 's/hello/hi/' a.txt
+	hi world
+	this is a test
+	hi hello world
+	#sed 's/hello/hi/g' a.txt
+	hi world
+	this is a test
+	hi hi world
+	#sed -n 's/hello/hi/p' a.txt 
+	hi world
+	hi hello world
+	sed -n 's/hello/hi/pg' a.txt
+	hi world
+	hi hi world
+		只s命令替换所有行中第一个匹配，g命令替换所有匹配，-n与p命令搭配只用只输出处理的行，不写入文件只输出
+	#data]$ sed 's/hello/hi/2g' a.txt 
+	hello world
+	this is a test
+	hello hi world
+	hello hi hi hi hi
+		/Ng，其中N代表自然数，表示从每一行的第几个匹配项进行处理，例子中为从每行第二个匹配项开始替换所有匹配，不写入文件只输出
+	#sed -n '2p' a.txt
+		只打印第二行
+	#sed '/^$/d' a.txt
+		删除空行
+	#sed '2d' a.txt
+		删除第二行
+	#sed '2,$d' a.txt
+		删除第二行到结尾行
+	#sed -n '$p' a.txt
+		只显示结尾行
+	#sed '/^[^h]/d' a.txt
+		删除所有非h开头的行，不包括空行，但包括空格开头的行
+	#echo This is a test line | sed 's/line/~ &!/g'
+	This is a test ~ line!
+		匹配项用&表示，在匹配项前后增加内容
+	#echo This is a test line | sed 's#\w\+#~ &!#g'
+	~ This! ~ is! ~ a! ~ test! ~ line!
+		\w\+ 表示任意单词均为匹配项
+	#echo 'loveable' | sed 's#\(love\)able#\1rs#'
+	lovers
+		\(..\)为匹配字符串，表示匹配loveable，..为love数字，\1为..中内容
+	#echo 'Price is $5' | sed 's/\$\([0-9]\)/\￥\1/' 
+	Price is ￥5
+		\(..\)为匹配字符串，表示匹配$数字，..为[0-9]数字，\1为..中内容
+	#echo 'hello world' | sed 's#\(hello\) \(world\)#\2 \1#'
+	world hello
+		当有两个\(..\)匹配字符串时，第一个存入\1中，第二个存入\2中
+	#echo 'hello 23333' | sed 's#\([a-z]\+\) \([0-9]\+\)#\2 \1#'        
+	23333 hello
+		\([a-z]\)+\表示匹配小写单词，\([0-9]\)+\表示匹配数字
+	#ifconfig | sed -n '2p' | sed 's#\([a-z]\+\) \([0-9]\+\)#\2#g'
+        192.168.137.188  255.255.255.0  192.168.137.255
+		ifconfig读取第二行有关ip地址信息，去除掉前面的单词，只留ip地址，组合多个表达式使用通道“|”
+	#sed 's#hello#hi#g;s#this#that#' a.txt     
+	hi world
+	that is a test
+		多个表达式也可以在引号内使用分号分开，建议使用通道
+	#sed -n 's#\(hello\) #\1  #pg' a.txt
+	hello  world
+	hello  hello  world
+	hello  hello  hello  hello  hello
+		从文件中读取，"hello "存进\1，并在所有匹配项后面加空格输出
+	#testsed=hello
+	#echo hello WORLD | sed "s#$testsed#HELLO#"
+	HELLO WORLD
+		如果表达式中需要调用变量可使用双引号，纯内容使用单引号
+	......
+
+43.	awk awk是一种编程语言，用于在linux/unix下对文本和数据进行处理
+	Usage: 	awk [options] 'script' var=value file(s)
+			awk [options] -f scriptfile var=value file(s)
+		-F 指定输入分隔符，可以是字符串或正则表达式（还可以使用FS=""）
+		$n 当前记录的第n个字段，比如n为1表示第一个字段，n为2表示第二个字段。
+		$0 为当前行内容
+		$NF 为最后一列，$(NF-1)为倒数第二列
+	#echo -e "Line1 f2 f3 \nLine2 f4 f5" | awk '{print $NF}'
+	f3
+	f5
+		$NF为显示最后一列，默认空格为分隔符，$(NF-1)为倒数第二列
+	#echo '12345 54321' | awk -F ' ' '{print $2}'  
+	54321
+		使用-F ' '来确定空格为分隔符，将输入内容分割为两部分，$1代表分隔符前面的部分，$2代表分隔符后面的副本，然后输出$2
+	#echo '192.168.137.186' | awk -F '.' '{print $4,$3" "$2,$1}'
+	186 137 168 192
+		分隔符为.，将原字符串分为4部分，任意调整输出顺序，用逗号连接输出默认分隔符为空格，也可用" "连接。
+	#echo '12345 54321 23333' | awk 'FS=" " {print $NF}'
+	23333
+		使用FS=" "来确定空格为分隔符，请注意书写格式。建议使用-F
+	#awk 'NR>19&&NR<26' testseq.txt
+	20
+	21
+	22
+	23
+	24
+	25
+		NR表示行号，表示输出行号大于19行，小于26行，即20~25行内容
+	#awk '{if(NR>19&&NR<26) print $0}' testseq.txt    
+	20
+	21
+	22
+	23
+	24
+	25
+		意思同上，写法不同，输出20~25行内容，使用if判断，$0为当前行内容
+
+44. tar 解压缩
+	#tar zxvf k.tar.gz
+	显示过程
+
+45. nl 显示行号
+	#nl nginx.conf
+	显示该文件并标记行号
+
+46. less 和more相反，一次一屏。回车是一次一行，空格是一次一屏，按“上”回退一行，B可以回退一屏
+
+47. more 按页显示，一次一屏。回车是一次一行，空格是一次一屏，不能回退
+	
+48. wc 显示总行数、总字符数等
+		-l 显示总行数
+		-L 显示字符数
+	[root@testvm2 oldboy]# ps -ef | grep "/sshd" | grep -v grep
+	root       1264      1  0 Jul19 ?        00:00:00 /usr/sbin/sshd
+	[root@testvm2 oldboy]# ps -ef | grep "/sshd" | grep -v grep | wc -l
+	1
+		工作中的应用：用0/1表示进程是否活着
+	[root@testvm2 oldboy]# netstat -lntup | grep sshd
+	tcp        0      0 0.0.0.0:22                  0.0.0.0:*                   LISTEN      1264/sshd           
+	tcp        0      0 :::22                       :::*                        LISTEN      1264/sshd           
+	[root@testvm2 oldboy]# netstat -lntup | grep sshd | wc -l
+	2
+		同理，看连接22端口的有几个连接来体现端口是否开放
+
+49.	chkconfig 设置开机自启动
+		--list 查找列表，查看自启动服务
+		--level levels 单独设置选定级别
+	#chkconfig --list sshd
+	sshd            0:off   1:off   2:on    3:on    4:on    5:on    6:off
+	#chkconfig --level 3 sshd on
+	
+50. ln 创建软连接（快捷方式）
+	#ln -s /etc/init.d/sshd /etc/rc.d/rc3.d/S55sshd
+		创建开机自启sshd软连接，前面为源，后面为目标，数字为目标进程里控制的启动与关闭的顺序
+
+51. chmod 修改权限
+	#chmod +x /etc/init.d/kd
+		给自己创建的kd脚本加执行权限
+
+52. stat 查看文件属性（display file or file system status）
+	#[root@Ks-CentOS-6 test]# stat /etc/hosts
+	  File: `/etc/hosts'
+	  Size: 158             Blocks: 8          IO Block: 4096   regular file
+	Device: 803h/2051d      Inode: 39          Links: 2
+	Access: (0644/-rw-r--r--)  Uid: (    0/    root)   Gid: (    0/    root)
+	Access: 2018-07-25 00:25:46.305342590 +0800
+	Modify: 2018-07-25 00:24:35.808342296 +0800
+	Change: 2018-07-25 00:24:35.809342332 +0800
+		查看hosts文件属性
+
+53. df 查看硬盘使用情况（report file system disk space usage）
+		-h 格式化大小
+		-i inode使用情况
+	#df -h
+		将磁盘使用大小格式化成最大单元（M、G、T等）
+		磁盘满了（no space on device left），分两种情况，inode满了或block满了
+	#df -i
+		查看inode使用情况
+	
+	
+	
+系统目录
+	Linux目录一般情况下，可执行程序在/usr/bin，数据文件和帮助在/usr/share，运行时加载的配置文件和服务启动命令在/etc
+	FHS (Filesystem Hierarchy Standard)目录层次规范，http://www.pathname.com/fhs/
+	
+	#tree -L 1 /
+	/
+	├── bin -> usr/bin
+	├── boot
+	├── dev
+	├── etc
+	├── home
+	├── lib -> usr/lib
+	├── lib64 -> usr/lib64
+	├── media
+	├── mnt
+	├── opt
+	├── proc
+	├── root
+	├── run
+	├── sbin -> usr/sbin
+	├── srv
+	├── sys
+	├── tmp
+	├── usr
+	└── var
+	/bin (Essential user command BINARIES (for use by all users)) 常用二进制命令所在目录
+	#whick ls
+	alias ls='ls --color=auto'
+        /usr/bin/ls
+		查找命令目录（别名）
+	/boot (Static files of the BOOT loader) Linux内核及系统引导程序所需的文件目录
+	/dev (DEVICE files) 设备文件目录
+	/etc (Host-specific system configuration) 二进制软件安装包（yum，rpm）的配置文件默认路径，或服务的启动命令存放目录（init.d）
+		fstab -->Static information about filesystems (optional) 开机自动挂载设备
+		hosts -->Static information about host names (optional) 主机名解析
+		inittab -->Configuration file for init (optional) 开机加载的文件
+		issue -->Pre-login message and identification file (optional) 登录之前的信息 
+		motd -->Post-login message of the day file (optional) 登录之后的信息
+		profile -->Systemwide initialization file for sh shell logins (optional) 全局环境变量
+		bashrc -->全局环境变量（用户的为~/.bashrc）
+		resolv.conf -->Resolver configuration file (optional) DNS配置文件
+	/home (User home directories (optional)) 普通用户家目录
+	/lib (Essential shared libraries and kernel modules) 库文件存放目录
+	/media
+	/mnt 临时挂载点
+	/opt option第三方软件安装位置
+	/proc 虚拟文件系统，将内核与进程状态归档为文本文件
+	/root root用户家目录
+	/run
+	/sbin (SUPER BINARY) 超级命令，只有root用户能用的命令
+	/srv
+	/sys 虚拟目录，内存信息
+	/tmp temp临时文件存放目录，垃圾堆
+	/usr (Unix Software Resource) 最有可能的解释，个人以为不是user的缩写。用户程序、数据、帮助文件、二进制命令等
+	/var (Variable data) 经常变换的文件，系统日志等
+
+重要文件及目录
+	/etc/sysconfig/network-scripts/ifcfg-exxxx 设置网卡参数
+	/etc/resolv.conf 设置DNS，重启网卡环境会覆盖resolv.conf设置
+	/etc/hosts 域名与ip的解析表，相当于本地DNS
+	/etc/sysconfig/network 配置主机名（CentOS 6及以前）
+	/etc/fstab 开机要挂载的分区
+	/etc/rc.local 用户自己的软件，写入文件，实现开机自启动
+	/etc/inittab 用于开机时设置系统级别
+	/etc/init.d/ 系统自启动目录，用来存放通过rpm或yum安装的软件的默认启动程序的目录
+	/etc/profile 系统全局环境变量
+	/etc/profile.d/ 系统登陆时加载该目录下的脚本文件
+	/etc/issue 记录用户登陆前显示的系统版本信息
+	/etc/motd 记录用户登陆后显示的信息
+	/etc/redhat-release 显示版本号和信息
+	/usr/local/ 用于存放用户自编译安装软件，一般通过源码包安装的软件，相当于Windows中的C:/Program Files
+	/usr/src/ 一般用户存放用户上传的源码包
+	/var/log/messages 系统日志，一般查看日志文件名语句为#ls -l /var/log/messages*，还可以通过dmesg来查看系统故障信息
+	/var/log/secure 查看系统登录信息日志，pop3, ssh, telnet, ftp都会记录，依赖rsyglog服务
+	/proc/version 查看内核版本
+	/proc/cpuinfo CPU情况
+	/proc/meminfo 内存情况
+	/proc/loadavg 负载平均值信息，还可以通过top查看任务管理器，uptime查看开机时间及负载
+	/proc/mounts 查看挂载了哪些设备
+	
+	
+
+
+	
+重定向
+	0<	输入重定向
+	0<<	输入追加重定向
+	1>	输出重定向
+	1>>	输出追加重定向
+	2>	错误重定向
+	2>>	错误追加重定向
+	#>/data/k.txt
+		清除/data/k.txt中的内容
+	#echo 1 2 3 4 >/data/k.txt
+		输出1 2 3 4到/data/k.txt中
+	#xargs -n 2 </data/k.txt
+		从/data/k.txt中输入信息，并以两个为一组显示，仅显示并未修改/data/k.txt中内容
+	#tr ' ' '\n' </data/k.txt
+		从/data/k.txt中输人信息，并将空格替换为回车，仅显示并未修改/data/k.txt中内容
+	#echo 'hello' 1>/data/a.txt 2>/data/b.txt
+		将hello输出到/data/a.txt中，如出现错误，将错误信息输入到/data/b.txt
+	#echo 'hello' 1>/data/a.txt 2>&1
+	#echo 'hello' &>/data/a.txt
+		将hello输出到/data/a.txt中，如出现错误，将错误信息输入到/data/a.txt中
+	#cat >/data/k.txt
+		手动输入内容输出到/data/k.txt中，手动输入完成按Ctrl+C结束
+
+符号用法
+	{} 序列
+	#echo {1..10}
+		输出显示1 2 3...10
+	#mkdir -p /data/{x,y}/test
+		在/data目录下分别创建x和y两个文件夹，再在x和y中创建test目录
+	#echo {1..3}{4..6}
+		输出显示14 15 16 24 25 26 34 35 36
+	#touch /data/{a..c}.txt
+		在/data目录创建a.txt b.txt c.txt
+
+	通配符
+	*		匹配零个或多个字符。
+	?		匹配任意单个字符。
+	[0-9]	匹配范围内的数字。
+	[abc]	匹配已出的任意字符。
+	e.g:
+	[cc@testvm1 ~]$ ls /dev/sda*
+	/dev/sda  /dev/sda1  /dev/sda2  /dev/sda3
+		显示sda开头任意结尾
+	[cc@testvm1 ~]$ ls /dev/sda?
+	/dev/sda1  /dev/sda2  /dev/sda3
+		显示sda开头任意一个字符结尾
+	[cc@testvm1 ~]$ ls /dev/sd? 
+	/dev/sda
+		显示sd开头任意一个字符结尾
+	[cc@testvm1 ~]$ ls /dev/sda[0-9]
+	/dev/sda1  /dev/sda2  /dev/sda3
+		显示sda开头1~9结尾
+	[cc@testvm1 ~]$ ls /dev/sda[135]
+	/dev/sda1  /dev/sda3
+		显示sda开头1/3/5结尾
+
+	特殊字符
+	\(反斜杠)	转义后面单个字符
+	''(单引号)	转义所有的字符
+	""(双引号)	变量依然生效
+	``(反引号)	执行命令语句
+	e.g:
+	[cc@testvm1 ~]$ echo $P
+
+		首先查看$P变量，发现$P为空
+	[cc@testvm1 ~]$ P=5
+		定义$P，赋值为5
+	[cc@testvm1 ~]$ echo $P
+	5
+		查看变量，复制成功，$P为5
+	[cc@testvm1 ~]$ echo "Price is $P" 
+	Price is 5
+		双引号中变量可以被调用
+	[cc@testvm1 ~]$ echo 'Price is $P'
+	Price is $P
+		单引号中变量无效
+	[cc@testvm1 ~]$ echo "Price is $$P"
+	Price is 1270P
+		计划显示Price is 5，在变量前加$，于$P冲突，解析为$$，输出1270
+	[cc@testvm1 ~]$ echo "Price is \$$P"
+	Price is $5
+		加反斜杠直接输出下一个字符，不解析
+	[cc@testvm1 ~]$ echo `echo $P`
+		反引号中的内容为执行语句，该句相当于直接输出echo $P
+
+
+
+特殊变量
+#export HISTSIZE=20 
+	命令行历史记录数量（临时生效，永久生效 ehco 'export HISTSIZE=20' >>/etc/profile，然后source /etc/profile）
+#export HISTFILESIZE=50 
+	命令行历史文件的记录数量~/.bash_history（临时生效,永久生效 ehco 'export HISTFILESIZE=50' >>/etc/profile，然后source /etc/profile）
+#export TMOUT=10 
+	10秒无操作登出（临时生效，永久生效 ehco 'export TIME=900' >>/etc/profile，然后source /etc/profile）
+
+查看帮助
+	#man pwd
+	#pwd --help
+	#help pwd
+	#info pwd
+		查看帮助多页显示的快捷键
+		/ 搜索，后面加搜索内容
+		n 搜索下一项
+		shift + n 搜索上一项
+		q 退出
+
+
+	#tail -l /etc/passwd
+		查看用户密码
+	#env | egrep "USER|MAIL|PWD|LOGNAME"
+		查看环境变量，并过滤其中信息
+
+变量		
+	PS1 系统的环境变量
+	[root@KS-CENTOS7 ~]# echo $PS1
+	[\u@\h \W]\$
+	[root@KS-CENTOS7 ~]# set | grep PS1
+	PS1='[\u@\h \W]\$ '
+	[root@KS-CENTOS7 ~]# PS1='[\t-\u@\h \W]\$'
+	[23:00:37-root@KS-CENTOS7 ~]#
+	
+	OLDPWD 上一次目录
+	env | grep -i oldpwd
+	echo $OLDPWD
+
+
+文件属性
+	[root@Ks-CentOS-6 test]# ls -lhi .
+	total 16K
+	284965 drwxr-xr-x 2 root root 4.0K Jul 25 10:18 dir1
+	284966 drwxr-xr-x 2 root root 4.0K Jul 25 08:22 dir2
+	284967 drwxr-xr-x 2 root root 4.0K Jul 25 08:22 dir3
+	284968 -rw-r--r-- 1 root root    0 Jul 25 08:56 file4.txt~
+	284971 -rw-r--r-- 1 root root    0 Jul 25 09:12 file5.txt~
+	284977 -rw-r--r-- 1 root root   24 Jul 25 10:35 test.txt
+	一     二         三 四   五     六  七  八  九    十
+
+	一共十列
+	第一列：文件的索引节点号，理解为文件的身份证号，系统读取文件时首先通过文件名找到inode，然后才能读取到文件内容
+	第二列：文件类型及权限（共11个字符，第一个为类型，后面九个为文件权限，每三个字符一组分别代表：所有者权限、所属用户组权限、其他人权限，第一个字符r为可读read、第二个字符w为可写write、第三个字符x为可执行execute，最后一个如果有为.，SELinux相关的标识）
+	第三列：为硬连接的数量（硬连接：同一个文件的不同访问入口）
+	第四列：文件所有用户（属主），理解为他妈，Linux里文件必须有用户和组，满足存在需求
+	第五列：文件所有的组，理解为他家，该文件所有组，不一定为该文件所有用户所在的组，理解为孩子他妈不一定在孩子他家
+	第六列：文件大小（Linux一切皆文件，目录其实也是文件）
+	第七列：文件修改月份，修改时间为mtime（modify），访问时间atime（access），改变时间为ctime（change）
+	第八列：文件修改日期
+	第九列：文件修改时分
+	第十列：文件名，严格角度来讲文件名并不算文件的属性
+
+	1. 	inode 索引节点（index node）
+		inode包括但不仅限于文件大小、属主、归属的用户组、类型、权限、修改时间，还包含指向文件实体的指针的功能（inode节点与--block的对应关系）等，但唯独不包含文件名
+		inode除了记录文件属性信息外，还会为每个文件进行信息索引，所以就有了inode值。操作系统通过系统指令通过inode值最快速度找到该文件
+		[root@Ks-CentOS-6 test]# df -i
+		Filesystem     Inodes IUsed  IFree IUse% Mounted on
+		/dev/sda3      546720 58125 488595   11% /
+		tmpfs          125376     1 125375    1% /dev/shm
+		/dev/sda1       51200    44  51156    1% /boot
+			查看各磁盘inode使用情况
+
+	2.	
+
+
+
+
+Linux三剑客（只适用于grep、sed、awk）正则表达式
+1、 ^ 	以...开头，"^d"为以d字母开头的
+2、 $ 	以...结尾，"$/"为以/符号结尾的
+3、 \ 	转义符，后面跟的第一个字符在表达式中只代表符号本身，无其他意义
+4、 . 	表示任意单个字符
+5、 .* 	代表所有
+
+
+
+
+Linux调优
+1.	SELinux 是美国国家安全局（NSA）对于强制访问控制的实现，建议关闭
+	#cp /etc/selinux/config /etc/selinux/config.ori
+		★★★备份文件，制作一个副本★★★
+	#vi /etc/selinux/config
+	SELINUX=disabled
+		方法一：修改配置文件，设置关闭
+	#sed -i 's#SELINUX=enforcing#SELINUX=disabled#g' /etc/selinux/config
+		方法二：sed替换命令
+	#getenforce
+	Enforcing
+		查看ENLinux状态
+	#setenforce
+	usage:  setenforce [ Enforcing | Permissive | 1 | 0 ]
+		查看setenforce方法
+	#setenforce 0
+		设置为Permissive（忽略，即弹出提示，但不阻止操作）
+	#getenforce
+	Permissive
+		确认状态为忽略，服务器重启后读取配置文件，状态自动改为disabled
+		
+2.	runlevels 运行级别
+	CentOS 6及以前为6个运行级别，分别为：
+		0 - 关机 halt (Do NOT set initdefault to this)
+		1 - 单用户 Single user mode
+		2 - 多用户无网络 Multiuser, without NFS (The same as 3, if you do not have networking)
+		3 - 完整命令行模式 Full multiuser mode
+		4 - 保留（不可用） unused
+		5 - 桌面模式 X11
+		6 - 重启 reboot (Do NOT set initdefault to this)
+	#cat /etc/inittab
+		查看帮助，修改默认运行级别修改此文件
+	#runlevel
+		查看运行级别
+	#init 5
+		重启后切换到桌面模式
+	CentOS 7开始取消用户级别，使用target来控制
+		multi-user.target	相当于3级，即命令行模式
+		graphical.target	相当于5级，即桌面模式
+	#systemctl set-default graphical.target
+		重启后切换到桌面模式
+	#init 0
+		关机，CentOS 7仍然可以使用该命令关机
+	#init 6
+		重启，CentOS 7仍然可以使用该命令重启
+
+3.	export 自动登出
+	#export TMOUT=10
+		10秒无操作登出
+
+4.	issue 隐藏Linux版本信息，连接SSH后的欢迎词
+	#cat /etc/issue
+	#cat /etc/issue.net
+	#>/etc/issue
+	#>/etc/issue.net
+
+5.	必要系统服务
+	1、	sshd		远程
+	2、	rsyslog		日志
+	3、	network		网络
+	4、	crond		定时任务
+	5、	sysstat		性能组件（iostat查看CPU使用率、mpstat处理器相关数据、sar收集报告系统信息）
+	
+	[root@testvm2 ~]# chkconfig --list | grep "3:on"
+	abrt-ccpp       0:off   1:off   2:off   3:on    4:off   5:on    6:off
+	abrt-oops       0:off   1:off   2:off   3:on    4:off   5:on    6:off
+	abrtd           0:off   1:off   2:off   3:on    4:off   5:on    6:off
+	acpid           0:off   1:off   2:on    3:on    4:on    5:on    6:off
+	atd             0:off   1:off   2:off   3:on    4:on    5:on    6:off
+	auditd          0:off   1:off   2:on    3:on    4:on    5:on    6:off
+	blk-availability        0:off   1:on    2:on    3:on    4:on    5:on    6:off
+	cpuspeed        0:off   1:on    2:on    3:on    4:on    5:on    6:off
+	crond           0:off   1:off   2:on    3:on    4:on    5:on    6:off
+	haldaemon       0:off   1:off   2:off   3:on    4:on    5:on    6:off
+	ip6tables       0:off   1:off   2:on    3:on    4:on    5:on    6:off
+	irqbalance      0:off   1:off   2:off   3:on    4:on    5:on    6:off
+	iscsi           0:off   1:off   2:off   3:on    4:on    5:on    6:off
+	iscsid          0:off   1:off   2:off   3:on    4:on    5:on    6:off
+	kdump           0:off   1:off   2:off   3:on    4:on    5:on    6:off
+	lvm2-monitor    0:off   1:on    2:on    3:on    4:on    5:on    6:off
+	mdmonitor       0:off   1:off   2:on    3:on    4:on    5:on    6:off
+	messagebus      0:off   1:off   2:on    3:on    4:on    5:on    6:off
+	netfs           0:off   1:off   2:off   3:on    4:on    5:on    6:off
+	network         0:off   1:off   2:on    3:on    4:on    5:on    6:off
+	postfix         0:off   1:off   2:on    3:on    4:on    5:on    6:off
+	rsyslog         0:off   1:off   2:on    3:on    4:on    5:on    6:off
+	sshd            0:off   1:off   2:on    3:on    4:on    5:on    6:off
+	sysstat         0:off   1:on    2:on    3:on    4:on    5:on    6:off
+	udev-post       0:off   1:on    2:on    3:on    4:on    5:on    6:off
+	
+	方法一：
+	[root@testvm2 ~]# chkconfig --list | grep "3:on" | egrep -v "crond|sshd|network|rsyslog|sysstat" | awk '{print "chkconfig",$1,"off"}'
+	chkconfig abrt-ccpp off
+	chkconfig abrt-oops off
+	chkconfig abrtd off
+	chkconfig acpid off
+	chkconfig atd off
+	chkconfig auditd off
+	chkconfig blk-availability off
+	chkconfig cpuspeed off
+	chkconfig haldaemon off
+	chkconfig ip6tables off
+	chkconfig irqbalance off
+	chkconfig iscsi off
+	chkconfig iscsid off
+	chkconfig kdump off
+	chkconfig lvm2-monitor off
+	chkconfig mdmonitor off
+	chkconfig messagebus off
+	chkconfig netfs off
+	chkconfig postfix off
+	chkconfig udev-post off
+	
+	[root@testvm2 ~]# chkconfig --list | grep "3:on" | egrep -v "crond|sshd|network|rsyslog|sysstat" | awk '{print "chkconfig",$1,"off"}' | bash
+	
+	[root@testvm2 ~]# chkconfig --list | grep "3:on"
+	crond           0:off   1:off   2:on    3:on    4:on    5:on    6:off
+	network         0:off   1:off   2:on    3:on    4:on    5:on    6:off
+	rsyslog         0:off   1:off   2:on    3:on    4:on    5:on    6:off
+	sshd            0:off   1:off   2:on    3:on    4:on    5:on    6:off
+	sysstat         0:off   1:on    2:on    3:on    4:on    5:on    6:off
+	
+	方法二：
+	所有全关，只开有用的。代码与方法一类似
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+
+
+Q&A：
+1. 	克隆后不能ifup网卡
+	修改/etc/sysconfig/network-scrpits/ifcfg-eth0
+	删除HWADDR和UUID所在行
+	清空/etc/udev/rules.d/70-persistent-net.rulse
+	reboot
+
+	
+	
+	
+	
+找出七天以前的日志文件并删除
+创建环境	
+	#mkdir -p /app/logs/
+	#cd /app/logs/
+	#for n in `seq 14`;	do date -s "2018/07/$n"; touch access_www_$(date + %F).log; done
+	#ntpdate ntp1.aliyun.com
+命令
+	#find . -type f -mtime +7 | xargs rm -f
+	#find . -type f -mtime +7 -exec rm -f {} \;
+	#rm -f `find . -type f -mtime +7`
+	
+实时观察日志
+环境
+	#for n in `seq 100`;do echo $n >> /var/log/messages;sleep 1;done
+命令
+	#tail -f /var/log/messages
+	观察日志尾部的变化（tailf /var/log/messages或tail -F /var/log/messages，-f如果文件删除即停止，-F一直尝试）
+	
+显示行号
+环境
+	#echo stu{01..20} | xargs -n 1 > nginx.conf
+命令
+	1. #cat -n nginx.conf
+	2. #nl nginx.conf （空行不记录行号，显示空行行号加-ba）
+	3. #grep -n ".*" nginx.conf
+	4. #vim nginx.conf
+	   :set nu
+	   :set nonu
+	5. #awk '{print NR,$0}' nginx.conf
+	6. #less -N nginx.conf
+	7. #sed = nginx.conf | sed 'N;s/\n/ /'
+	
+显示文件有多少行
+	#wc -l /etc/services
+	其他显示行号的命令后面加" | tail -1",如：#sed = /etc/services | sed 'N;s/\n/ /' | tail -1
+	
+开机自启动管理
+	1、	编辑/etc/rc.local
+		如：增加如下内容
+		#sshd service startup scripts by K at 2018.07.23
+		/etc/init.d/sshd start
+	2、	chkconfig --list sshd
+		chkconfig --level 3 sshd off
+		chkconfig sshd on
+		
+Linux开机启动过程
+	1、	开机BIOS自检
+	2、	MBR引导
+		硬盘0柱面0磁道1扇区的前446byte（共512byte，即字节,446b引导+64b分区表负责4个主分区+2b分区结束标志）
+	3、	grub引导菜单
+		cat /etc/grub.conf
+	4、	加载内核kernel
+	5、	启动进程init（Linux启动的第一个进程，进程号为1）
+	6、	init进程读取intitab文件（运行级别），执行rc.sysinit, rc等脚本
+		/etc/inittab			运行级别
+		/etc/rc.d/rc.sysinit	初始化系统
+		/etc/rc.d/rc3.d/		根据运行级别运行该级别下的脚本
+			该目录下链接文件名字开头S为Start运行，K为Kill关闭，后面为脚本文件所在地址
+	7、	启动mingetty，进入登录界面
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
