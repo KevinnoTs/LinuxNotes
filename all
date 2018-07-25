@@ -170,6 +170,7 @@ Linux 学习笔记
 			8、ll | awk '/^d/'
 			9、ls -F | sed -n '/\/$/p'
 			10、ls -F | awk '/\/$/'
+			11、tree -Ld 1 .
 	#ls
 		查看当前目录下文件夹及文件，平铺模式
 	#ll
@@ -248,7 +249,7 @@ Linux 学习笔记
 		-d 只显示目录，不显示文件
 		-L 显示目录层级（-L n）
 		-f 为每一个文件显示完整的路径
-		-i 不显示树枝，文件或文件夹名（-i一般情况下与-f参数一起使用）
+		-i 不显示树枝，只显示文件或文件夹名（-i一般情况下与-f参数一起使用）
 		-F 区分文件及文件夹，文件夹后有/
 	#tree -L 2
 		显示本目录的目录结构，只显示2层目录
@@ -450,7 +451,7 @@ Linux 学习笔记
 	#export HISTSIZE=20
 		命令行历史记录数量（临时生效，永久生效 ehco 'export HISTSIZE=20' >>/etc/profile，然后source /etc/profile）
 	#export HISTFILESIZE=100
-		命令行历史文件的记录数量~/.bash_history（临时生效,永久生效 ehco 'export HISTFILESIZE=50' >>/etc/profile，然后source /etc/profile）
+		命令行历史文件的记录数量~/.bash_history（临时生效,永久生效 ehco 'export HISTFILESIZE=100' >>/etc/profile，然后source /etc/profile）
 
 34.	hostname 主机名
 	#hostname
@@ -795,9 +796,21 @@ Linux 学习笔记
 		-i inode使用情况
 	#df -h
 		将磁盘使用大小格式化成最大单元（M、G、T等）
-		磁盘满了（no space on device left），分两种情况，inode满了或block满了
+		磁盘满了（no space left on device），分两种情况，inode满了或block满了
 	#df -i
 		查看inode使用情况
+
+54. which 查看命令路径
+	#which pwd
+	/bin/pwd
+		查看pwd命令的所在路径
+
+55. last 查看用户的登录信息（show listing of last logged in users），对应的文件为/var/log/wtmp
+
+56.	lastlog	显示最近登录的用户信息（reports the most recent login of all users or of a given user），对应文件为/var/log/lastlog
+
+57. dumpe2fs 查看文件系统内部信息（包括元数据）
+
 	
 	
 	
@@ -881,6 +894,65 @@ Linux 学习笔记
 	/proc/loadavg 负载平均值信息，还可以通过top查看任务管理器，uptime查看开机时间及负载
 	/proc/mounts 查看挂载了哪些设备
 	
+
+
+文件属性
+	[root@Ks-CentOS-6 test]# ls -lhi .
+	total 16K
+	284965 drwxr-xr-x 2 root root 4.0K Jul 25 10:18 dir1
+	284966 drwxr-xr-x 2 root root 4.0K Jul 25 08:22 dir2
+	284967 drwxr-xr-x 2 root root 4.0K Jul 25 08:22 dir3
+	284968 -rw-r--r-- 1 root root    0 Jul 25 08:56 file4.txt~
+	284971 -rw-r--r-- 1 root root    0 Jul 25 09:12 file5.txt~
+	284977 -rw-r--r-- 1 root root   24 Jul 25 10:35 test.txt
+	一     二         三 四   五     六  七  八  九    十
+
+	一共十列
+	第一列：文件的索引节点号，理解为文件的身份证号，系统读取文件时首先通过文件名找到inode，然后才能读取到文件内容
+	第二列：文件类型及权限（共11个字符，第一个为类型，后面九个为文件权限，最后一个如果有为.，SELinux相关的标识）
+		文件类型：Linux中一切皆文件，类型包括普通文件（regular file:-）、目录（directory:d）、块设备文件（block:b）、符号链接文件（link:l）、字符设备文件（character:c）、管道文件（named pipe:p）、Socket文件（socket:s）等，前4个是常用文件类型，后3个只需要知道有就可以
+			普通文件按照内容又分为三种：
+				纯文本文件（ascll）文件内容可以直接读取到数据，可以用cat命令读取，比如配置文件几乎都是这种类型
+				二进制文件（binary）Linux中的命令程序就是属于这种文件
+				数据格式文件（data）特定格式文件，cat读取会乱码，如/var/log/wtmp将会记录登陆的信息，通过last命令读取，同理还有lastlog读取/var/log/lastlog
+					可以通过“file 文件名”查看文件类型
+					[root@Ks-CentOS-6 ~]# file /var/log/lastlog
+					/var/log/lastlog: data
+						查看到lastlog文件类型为数据格式文件data
+			文件后缀分为：
+				1 .tar(打包的)、.tar.gz(打包压缩的)、.tgz、.zip、.tar.bz 表示压缩文件，创建命令一般为tar、gzip、unzip等
+				2 .sh 表示shell脚本
+				3 .pl 表示perl语言
+				4 .py 表示python语言
+				5 .html、.htm、.php、.jsp、.do 表示网页语言
+				6 .conf 表示配置文件
+				7 .rpm 表示rpm安装包
+		文件权限：每三个字符一组分别代表：所有者权限、所属用户组权限、其他人权限，第一个字符r为可读read、第二个字符w为可写write、第三个字符x为可执行execute
+	第三列：为硬连接的数量（硬连接：同一个文件的不同访问入口）
+	第四列：文件所有用户（属主），理解为他妈，Linux里文件必须有用户和组，满足存在需求
+	第五列：文件所有的组，理解为他家，该文件所有组，不一定为该文件所有用户所在的组，理解为孩子他妈不一定在孩子他家
+	第六列：文件大小（Linux一切皆文件，目录其实也是文件）
+	第七列：文件修改月份，修改时间为mtime（modify），访问时间atime（access），改变时间为ctime（change）
+	第八列：文件修改日期
+	第九列：文件修改时分
+	第十列：文件名，严格角度来讲文件名并不算文件的属性
+
+	1. 	inode 索引节点（index node）
+		inode包括但不仅限于文件大小、属主、归属的用户组、类型、权限、修改时间，还包含指向文件实体的指针的功能（inode节点与--block的对应关系）等，但唯独不包含文件名（文件名一般放在上级目录的block里）
+		inode除了记录文件属性信息外，还会为每个文件进行信息索引，所以就有了inode值。操作系统通过系统指令通过inode值最快速度找到该文件
+		[root@Ks-CentOS-6 test]# df -i
+		Filesystem     Inodes IUsed  IFree IUse% Mounted on
+		/dev/sda3      546720 58125 488595   11% /
+		tmpfs          125376     1 125375    1% /dev/shm
+		/dev/sda1       51200    44  51156    1% /boot
+			查看各磁盘inode使用情况
+
+	2.	block 存储空间
+		一般block分为1k、2k、4k三种单位大小，一个block只能被一个文件使用（每个文件最少占用1block），block越多磁盘IO越多。如果小文件太多，设置block过大，会浪费block空间，也就是说浪费磁盘空间；如果文件太大，block设置太小，影响磁盘访问效率。一般设置为4k（CentOS 6及以前版本）
+
+
+
+
 	
 
 
@@ -1011,40 +1083,8 @@ Linux 学习笔记
 	echo $OLDPWD
 
 
-文件属性
-	[root@Ks-CentOS-6 test]# ls -lhi .
-	total 16K
-	284965 drwxr-xr-x 2 root root 4.0K Jul 25 10:18 dir1
-	284966 drwxr-xr-x 2 root root 4.0K Jul 25 08:22 dir2
-	284967 drwxr-xr-x 2 root root 4.0K Jul 25 08:22 dir3
-	284968 -rw-r--r-- 1 root root    0 Jul 25 08:56 file4.txt~
-	284971 -rw-r--r-- 1 root root    0 Jul 25 09:12 file5.txt~
-	284977 -rw-r--r-- 1 root root   24 Jul 25 10:35 test.txt
-	一     二         三 四   五     六  七  八  九    十
 
-	一共十列
-	第一列：文件的索引节点号，理解为文件的身份证号，系统读取文件时首先通过文件名找到inode，然后才能读取到文件内容
-	第二列：文件类型及权限（共11个字符，第一个为类型，后面九个为文件权限，每三个字符一组分别代表：所有者权限、所属用户组权限、其他人权限，第一个字符r为可读read、第二个字符w为可写write、第三个字符x为可执行execute，最后一个如果有为.，SELinux相关的标识）
-	第三列：为硬连接的数量（硬连接：同一个文件的不同访问入口）
-	第四列：文件所有用户（属主），理解为他妈，Linux里文件必须有用户和组，满足存在需求
-	第五列：文件所有的组，理解为他家，该文件所有组，不一定为该文件所有用户所在的组，理解为孩子他妈不一定在孩子他家
-	第六列：文件大小（Linux一切皆文件，目录其实也是文件）
-	第七列：文件修改月份，修改时间为mtime（modify），访问时间atime（access），改变时间为ctime（change）
-	第八列：文件修改日期
-	第九列：文件修改时分
-	第十列：文件名，严格角度来讲文件名并不算文件的属性
 
-	1. 	inode 索引节点（index node）
-		inode包括但不仅限于文件大小、属主、归属的用户组、类型、权限、修改时间，还包含指向文件实体的指针的功能（inode节点与--block的对应关系）等，但唯独不包含文件名
-		inode除了记录文件属性信息外，还会为每个文件进行信息索引，所以就有了inode值。操作系统通过系统指令通过inode值最快速度找到该文件
-		[root@Ks-CentOS-6 test]# df -i
-		Filesystem     Inodes IUsed  IFree IUse% Mounted on
-		/dev/sda3      546720 58125 488595   11% /
-		tmpfs          125376     1 125375    1% /dev/shm
-		/dev/sda1       51200    44  51156    1% /boot
-			查看各磁盘inode使用情况
-
-	2.	
 
 
 
