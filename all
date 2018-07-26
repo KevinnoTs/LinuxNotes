@@ -284,7 +284,7 @@ Linux 学习笔记
 		创建用户KevinnoTs
 
 24. passwd 修改密码
-	Usage: passwd [OPTION...] <accountName>	
+	Usage: passwd [OPTION...] <accountName>
 	#passwd KevinnoTs
 		修改KevinnoTs密码（交互式，可以用户自己操作）
 	#echo "qwert123" | passwd --stdin KevinnoTs
@@ -293,7 +293,7 @@ Linux 学习笔记
 25.	su 切换用户
 	Usage: su [options] - [USER [arg]...]
 	#su - KevinnoTs
-		切换用户，切记加“-”	
+		切换用户，切记加“-”
 26. whoami 打印当前用户
 	#whoami
 		查看当前用户，相当于id -un
@@ -482,13 +482,13 @@ Linux 学习笔记
 		查看系统默认挂载点
 	#fdisk -l
 		查看硬盘分区
-		
+
 36. blkid 查看磁盘UUID（只能root用户）
 	#blkid
-	/dev/sr0: UUID="2017-09-06-10-51-00-00" LABEL="CentOS 7 x86_64" TYPE="iso9660" PTTYPE="dos" 
-	/dev/sda1: UUID="111da2b8-ef17-448c-ac9a-12ec8b94dbc5" TYPE="xfs" 
-	/dev/sda2: UUID="fd84ea2c-60c1-4340-bdc0-3a1766de7582" TYPE="swap" 
-	/dev/sda3: UUID="87f479e2-fdc4-49be-b1f9-a0e95107b0aa" TYPE="xfs" 
+	/dev/sr0: UUID="2017-09-06-10-51-00-00" LABEL="CentOS 7 x86_64" TYPE="iso9660" PTTYPE="dos"
+	/dev/sda1: UUID="111da2b8-ef17-448c-ac9a-12ec8b94dbc5" TYPE="xfs"
+	/dev/sda2: UUID="fd84ea2c-60c1-4340-bdc0-3a1766de7582" TYPE="swap"
+	/dev/sda3: UUID="87f479e2-fdc4-49be-b1f9-a0e95107b0aa" TYPE="xfs"
 		查看所有磁盘设备（分区）的UUID
 
 37. cp 复制拷贝文件或目录（CoPy）
@@ -540,7 +540,7 @@ Linux 学习笔记
 		查找/home/cc/test/及其子目录下名为test.txt的文件
 	#find /home/cc/test/ -type f ! -name "*.txt" | xargs rm -f
 		删除该目录及子目录下所有不是txt的文件
-	#find /home/cc/test/ -type f -name "1.*" -a -name "*.jpg" 
+	#find /home/cc/test/ -type f -name "1.*" -a -name "*.jpg"
 	/home/cc/test/data/1.jpg
 		查找目录及子目录下名字带1的所有jpg文件
 	#mv `find /home/cc -type f -name "1.txt"` /tmp/ks/
@@ -623,7 +623,6 @@ Linux 学习笔记
 		\(..\) 匹配子串，并保存匹配的字符，使用\1输出，如s/\(love\)able/\1rs/，loveable被替换成lovers
 		[] 制定范围内的字符，/[Kk]s/表示Ks和ks都匹配
 		[^] 除制定范围内的字符，/[^1-8a-z]/表示除1-8数字和小写字母以外其他均匹配，包括空格、符号大写字母等
-		
 		定界符：
 		/ : | #
 	#sed 's/hello/hi/' a.txt
@@ -640,14 +639,14 @@ Linux 学习笔记
 	hi world
 	this is a test
 	hi hi world
-	#sed -n 's/hello/hi/p' a.txt 
+	#sed -n 's/hello/hi/p' a.txt
 	hi world
 	hi hello world
 	sed -n 's/hello/hi/pg' a.txt
 	hi world
 	hi hi world
 		只s命令替换所有行中第一个匹配，g命令替换所有匹配，-n与p命令搭配只用只输出处理的行，不写入文件只输出
-	#data]$ sed 's/hello/hi/2g' a.txt 
+	#data]$ sed 's/hello/hi/2g' a.txt
 	hello world
 	this is a test
 	hello hi world
@@ -674,19 +673,19 @@ Linux 学习笔记
 	#echo 'loveable' | sed 's#\(love\)able#\1rs#'
 	lovers
 		\(..\)为匹配字符串，表示匹配loveable，..为love数字，\1为..中内容
-	#echo 'Price is $5' | sed 's/\$\([0-9]\)/\￥\1/' 
+	#echo 'Price is $5' | sed 's/\$\([0-9]\)/\￥\1/'
 	Price is ￥5
 		\(..\)为匹配字符串，表示匹配$数字，..为[0-9]数字，\1为..中内容
 	#echo 'hello world' | sed 's#\(hello\) \(world\)#\2 \1#'
 	world hello
 		当有两个\(..\)匹配字符串时，第一个存入\1中，第二个存入\2中
-	#echo 'hello 23333' | sed 's#\([a-z]\+\) \([0-9]\+\)#\2 \1#'        
+	#echo 'hello 23333' | sed 's#\([a-z]\+\) \([0-9]\+\)#\2 \1#'
 	23333 hello
 		\([a-z]\)+\表示匹配小写单词，\([0-9]\)+\表示匹配数字
 	#ifconfig | sed -n '2p' | sed 's#\([a-z]\+\) \([0-9]\+\)#\2#g'
         192.168.137.188  255.255.255.0  192.168.137.255
 		ifconfig读取第二行有关ip地址信息，去除掉前面的单词，只留ip地址，组合多个表达式使用通道“|”
-	#sed 's#hello#hi#g;s#this#that#' a.txt     
+	#sed 's#hello#hi#g;s#this#that#' a.txt
 	hi world
 	that is a test
 		多个表达式也可以在引号内使用分号分开，建议使用通道
@@ -712,7 +711,7 @@ Linux 学习笔记
 	f3
 	f5
 		$NF为显示最后一列，默认空格为分隔符，$(NF-1)为倒数第二列
-	#echo '12345 54321' | awk -F ' ' '{print $2}'  
+	#echo '12345 54321' | awk -F ' ' '{print $2}'
 	54321
 		使用-F ' '来确定空格为分隔符，将输入内容分割为两部分，$1代表分隔符前面的部分，$2代表分隔符后面的副本，然后输出$2
 	#echo '192.168.137.186' | awk -F '.' '{print $4,$3" "$2,$1}'
@@ -729,7 +728,7 @@ Linux 学习笔记
 	24
 	25
 		NR表示行号，表示输出行号大于19行，小于26行，即20~25行内容
-	#awk '{if(NR>19&&NR<26) print $0}' testseq.txt    
+	#awk '{if(NR>19&&NR<26) print $0}' testseq.txt
 	20
 	21
 	22
@@ -749,7 +748,7 @@ Linux 学习笔记
 46. less 和more相反，一次一屏。回车是一次一行，空格是一次一屏，按“上”回退一行，B可以回退一屏
 
 47. more 按页显示，一次一屏。回车是一次一行，空格是一次一屏，不能回退
-	
+
 48. wc 显示总行数、总字符数等
 		-l 显示总行数
 		-L 显示字符数
@@ -759,8 +758,8 @@ Linux 学习笔记
 	1
 		工作中的应用：用0/1表示进程是否活着
 	[root@testvm2 oldboy]# netstat -lntup | grep sshd
-	tcp        0      0 0.0.0.0:22                  0.0.0.0:*                   LISTEN      1264/sshd           
-	tcp        0      0 :::22                       :::*                        LISTEN      1264/sshd           
+	tcp        0      0 0.0.0.0:22                  0.0.0.0:*                   LISTEN      1264/sshd
+	tcp        0      0 :::22                       :::*                        LISTEN      1264/sshd
 	[root@testvm2 oldboy]# netstat -lntup | grep sshd | wc -l
 	2
 		同理，看连接22端口的有几个连接来体现端口是否开放
@@ -771,7 +770,7 @@ Linux 学习笔记
 	#chkconfig --list sshd
 	sshd            0:off   1:off   2:on    3:on    4:on    5:on    6:off
 	#chkconfig --level 3 sshd on
-	
+
 50. ln 创建软连接（快捷方式）
 	#ln -s /etc/init.d/sshd /etc/rc.d/rc3.d/S55sshd
 		创建开机自启sshd软连接，前面为源，后面为目标，数字为目标进程里控制的启动与关闭的顺序
@@ -811,13 +810,13 @@ Linux 学习笔记
 
 57. dumpe2fs 查看文件系统内部信息（包括元数据）
 
-	
-	
-	
+
+
+
 系统目录
 	Linux目录一般情况下，可执行程序在/usr/bin，数据文件和帮助在/usr/share，运行时加载的配置文件和服务启动命令在/etc
 	FHS (Filesystem Hierarchy Standard)目录层次规范，http://www.pathname.com/fhs/
-	
+
 	#tree -L 1 /
 	/
 	├── bin -> usr/bin
@@ -850,7 +849,7 @@ Linux 学习笔记
 		fstab -->Static information about filesystems (optional) 开机自动挂载设备
 		hosts -->Static information about host names (optional) 主机名解析
 		inittab -->Configuration file for init (optional) 开机加载的文件
-		issue -->Pre-login message and identification file (optional) 登录之前的信息 
+		issue -->Pre-login message and identification file (optional) 登录之前的信息
 		motd -->Post-login message of the day file (optional) 登录之后的信息
 		profile -->Systemwide initialization file for sh shell logins (optional) 全局环境变量
 		bashrc -->全局环境变量（用户的为~/.bashrc）
@@ -893,7 +892,7 @@ Linux 学习笔记
 	/proc/meminfo 内存情况
 	/proc/loadavg 负载平均值信息，还可以通过top查看任务管理器，uptime查看开机时间及负载
 	/proc/mounts 查看挂载了哪些设备
-	
+
 
 
 文件属性
@@ -953,10 +952,8 @@ Linux 学习笔记
 
 
 
-	
 
 
-	
 重定向
 	0<	输入重定向
 	0<<	输入追加重定向
@@ -1003,7 +1000,7 @@ Linux 学习笔记
 	[cc@testvm1 ~]$ ls /dev/sda?
 	/dev/sda1  /dev/sda2  /dev/sda3
 		显示sda开头任意一个字符结尾
-	[cc@testvm1 ~]$ ls /dev/sd? 
+	[cc@testvm1 ~]$ ls /dev/sd?
 	/dev/sda
 		显示sd开头任意一个字符结尾
 	[cc@testvm1 ~]$ ls /dev/sda[0-9]
@@ -1027,7 +1024,7 @@ Linux 学习笔记
 	[cc@testvm1 ~]$ echo $P
 	5
 		查看变量，复制成功，$P为5
-	[cc@testvm1 ~]$ echo "Price is $P" 
+	[cc@testvm1 ~]$ echo "Price is $P"
 	Price is 5
 		双引号中变量可以被调用
 	[cc@testvm1 ~]$ echo 'Price is $P'
@@ -1045,12 +1042,24 @@ Linux 学习笔记
 
 
 特殊变量
-#export HISTSIZE=20 
-	命令行历史记录数量（临时生效，永久生效 ehco 'export HISTSIZE=20' >>/etc/profile，然后source /etc/profile）
-#export HISTFILESIZE=50 
-	命令行历史文件的记录数量~/.bash_history（临时生效,永久生效 ehco 'export HISTFILESIZE=50' >>/etc/profile，然后source /etc/profile）
-#export TMOUT=10 
-	10秒无操作登出（临时生效，永久生效 ehco 'export TIME=900' >>/etc/profile，然后source /etc/profile）
+	#export HISTSIZE=20
+		命令行历史记录数量（临时生效，永久生效 ehco 'export HISTSIZE=20' >>/etc/profile，然后source /etc/profile）
+	#export HISTFILESIZE=50
+		命令行历史文件的记录数量~/.bash_history（临时生效,永久生效 ehco 'export HISTFILESIZE=50' >>/etc/profile，然后source /etc/profile）
+	#export TMOUT=10
+		10秒无操作登出（临时生效，永久生效 ehco 'export TIME=900' >>/etc/profile，然后source /etc/profile）
+
+	PS1 系统的环境变量
+	[root@KS-CENTOS7 ~]# echo $PS1
+	[\u@\h \W]\$
+	[root@KS-CENTOS7 ~]# set | grep PS1
+	PS1='[\u@\h \W]\$ '
+	[root@KS-CENTOS7 ~]# PS1='[\t-\u@\h \W]\$'
+	[23:00:37-root@KS-CENTOS7 ~]#
+
+	OLDPWD 上一次目录
+	env | grep -i oldpwd
+	echo $OLDPWD
 
 查看帮助
 	#man pwd
@@ -1069,18 +1078,7 @@ Linux 学习笔记
 	#env | egrep "USER|MAIL|PWD|LOGNAME"
 		查看环境变量，并过滤其中信息
 
-变量		
-	PS1 系统的环境变量
-	[root@KS-CENTOS7 ~]# echo $PS1
-	[\u@\h \W]\$
-	[root@KS-CENTOS7 ~]# set | grep PS1
-	PS1='[\u@\h \W]\$ '
-	[root@KS-CENTOS7 ~]# PS1='[\t-\u@\h \W]\$'
-	[23:00:37-root@KS-CENTOS7 ~]#
-	
-	OLDPWD 上一次目录
-	env | grep -i oldpwd
-	echo $OLDPWD
+
 
 
 
@@ -1119,7 +1117,7 @@ Linux调优
 	#getenforce
 	Permissive
 		确认状态为忽略，服务器重启后读取配置文件，状态自动改为disabled
-		
+
 2.	runlevels 运行级别
 	CentOS 6及以前为6个运行级别，分别为：
 		0 - 关机 halt (Do NOT set initdefault to this)
@@ -1161,7 +1159,7 @@ Linux调优
 	3、	network		网络
 	4、	crond		定时任务
 	5、	sysstat		性能组件（iostat查看CPU使用率、mpstat处理器相关数据、sar收集报告系统信息）
-	
+
 	[root@testvm2 ~]# chkconfig --list | grep "3:on"
 	abrt-ccpp       0:off   1:off   2:off   3:on    4:off   5:on    6:off
 	abrt-oops       0:off   1:off   2:off   3:on    4:off   5:on    6:off
@@ -1188,7 +1186,7 @@ Linux调优
 	sshd            0:off   1:off   2:on    3:on    4:on    5:on    6:off
 	sysstat         0:off   1:on    2:on    3:on    4:on    5:on    6:off
 	udev-post       0:off   1:on    2:on    3:on    4:on    5:on    6:off
-	
+
 	方法一：
 	[root@testvm2 ~]# chkconfig --list | grep "3:on" | egrep -v "crond|sshd|network|rsyslog|sysstat" | awk '{print "chkconfig",$1,"off"}'
 	chkconfig abrt-ccpp off
@@ -1211,30 +1209,22 @@ Linux调优
 	chkconfig netfs off
 	chkconfig postfix off
 	chkconfig udev-post off
-	
+
 	[root@testvm2 ~]# chkconfig --list | grep "3:on" | egrep -v "crond|sshd|network|rsyslog|sysstat" | awk '{print "chkconfig",$1,"off"}' | bash
-	
+
 	[root@testvm2 ~]# chkconfig --list | grep "3:on"
 	crond           0:off   1:off   2:on    3:on    4:on    5:on    6:off
 	network         0:off   1:off   2:on    3:on    4:on    5:on    6:off
 	rsyslog         0:off   1:off   2:on    3:on    4:on    5:on    6:off
 	sshd            0:off   1:off   2:on    3:on    4:on    5:on    6:off
 	sysstat         0:off   1:on    2:on    3:on    4:on    5:on    6:off
-	
+
 	方法二：
 	所有全关，只开有用的。代码与方法一类似
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
+
+
+
+
 
 
 Q&A：
@@ -1244,12 +1234,10 @@ Q&A：
 	清空/etc/udev/rules.d/70-persistent-net.rulse
 	reboot
 
-	
-	
-	
-	
+
+
 找出七天以前的日志文件并删除
-创建环境	
+创建环境
 	#mkdir -p /app/logs/
 	#cd /app/logs/
 	#for n in `seq 14`;	do date -s "2018/07/$n"; touch access_www_$(date + %F).log; done
@@ -1258,14 +1246,14 @@ Q&A：
 	#find . -type f -mtime +7 | xargs rm -f
 	#find . -type f -mtime +7 -exec rm -f {} \;
 	#rm -f `find . -type f -mtime +7`
-	
+
 实时观察日志
 环境
 	#for n in `seq 100`;do echo $n >> /var/log/messages;sleep 1;done
 命令
 	#tail -f /var/log/messages
 	观察日志尾部的变化（tailf /var/log/messages或tail -F /var/log/messages，-f如果文件删除即停止，-F一直尝试）
-	
+
 显示行号
 环境
 	#echo stu{01..20} | xargs -n 1 > nginx.conf
@@ -1279,11 +1267,11 @@ Q&A：
 	5. #awk '{print NR,$0}' nginx.conf
 	6. #less -N nginx.conf
 	7. #sed = nginx.conf | sed 'N;s/\n/ /'
-	
+
 显示文件有多少行
 	#wc -l /etc/services
 	其他显示行号的命令后面加" | tail -1",如：#sed = /etc/services | sed 'N;s/\n/ /' | tail -1
-	
+
 开机自启动管理
 	1、	编辑/etc/rc.local
 		如：增加如下内容
@@ -1292,7 +1280,7 @@ Q&A：
 	2、	chkconfig --list sshd
 		chkconfig --level 3 sshd off
 		chkconfig sshd on
-		
+
 Linux开机启动过程
 	1、	开机BIOS自检
 	2、	MBR引导

@@ -1,0 +1,17 @@
+首先，安装Package Control插件
+
+然后，快捷键command+shift+p打开插件管理界面，输入install，选择
+
+在弹出窗口输入要搜索的插件，选择
+
+SyncedSideBar
+	每次打开文件，侧边栏同步展开目录树中的位置
+
+AdvancedNewFile
+	command + alt + n 新建文件，可输入地址，递归创建
+
+TrailingSpaces
+	高亮结尾空格和空行中锁进
+
+SidebarEnhancements
+	增强侧边栏菜单，并设置固定浏览器预览文件
