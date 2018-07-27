@@ -1,3 +1,5 @@
+Sublime Text 3
+
 首先，安装Package Control插件
 
 然后，快捷键command+shift+p打开插件管理界面，输入install，选择
@@ -15,3 +17,9 @@ TrailingSpaces
 
 SidebarEnhancements
 	增强侧边栏菜单，并设置固定浏览器预览文件
+
+Emmet
+	快速生成HTML代码段的插件
+
+SublimeLinter
+	高亮代码，按代码格式单独下载插件支持高亮
