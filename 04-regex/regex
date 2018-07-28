@@ -99,6 +99,7 @@ BRE与ERE的异同：参考资料：https://blog.csdn.net/huli870715/article/det
 3、	"|"			条件或，即前面的字符或后面的字符
 				http|https	表示匹配http或https为开头的整行内容
 
+
 六、其他可替换之前表达式的简写表达式（大多数有限制，如只能在ERE中使用或需要perl正则支持）
 
 1、 	"\d"		表示匹配一个数字字符
@@ -114,4 +115,7 @@ BRE与ERE的异同：参考资料：https://blog.csdn.net/huli870715/article/det
 4、	"?"			匹配前面的字符0个或1个
 				ERE专用，等价于"\{0,1\}"
 				^https?	表示匹配http或https为开头的整行内容
+
+5、 "\<..\>"		匹配..单词的开始和结束，可以单独出现
+				等价于前后都加\b，不是所有语言都可以使用
 
