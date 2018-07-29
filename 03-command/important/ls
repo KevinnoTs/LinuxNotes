@@ -1,0 +1,33 @@
+ls 查看目录（List）相当于windows的dir
+	-C 多列显示输出结果，默认参数
+	-l 单列显示输出结果（use a Long listing format），ls -l可以缩写成ll
+	-h 结合-l使用，将文件大小换算成方便阅读的单位（with -l, print sizes in Human readable format）
+	-d 只显示目录 （list Directory entries instead of contents）
+	-a 显示所有文件包括隐藏文件（All），默认.开头的文件都是隐藏的，不显示
+	-F 给不同类型加不同标识 （append indicator (one of */=>@|) to entries）
+	-p 给文件夹加/标识 （append / indicator to directories）
+	-t 按修改时间排序（sort by modification Time）
+	-r 倒序排列（Reverse order while sorting）
+	-i 查看inode节点 （print the index number of each file）
+	--color==auto 列表显示颜色（也可以用在grep中）
+
+	如何查看文件夹，忽略文件：
+		1、ll查看，第一列以d开头的是文件夹 --> ll | grep "^d" （^表示以什么开头的）
+		2、ll查看，第二列大于1（当文件没有硬链接的情况下） --> ll | awk '{if($2>1&&$1!="total") print $0}'
+		3、ll查看，名字颜色（默认是深蓝色） --> 眼看...
+		4、ls -F或ls -p查看，结尾是/的（-F是区分属性，-p是只给目录加/） --> ls -F | grep "/$" （$表示以什么结尾的）
+		5、find查找类型为-d的 --> find ./* -maxdepth 0 -type d 或 find . -maxdepth 1 -type d ! -name '.'
+		6、ls -dl */
+		7、ll | sed -n '/^d/p'
+		8、ll | awk '/^d/'
+		9、ls -F | sed -n '/\/$/p'
+		10、ls -F | awk '/\/$/'
+		11、tree -Ld 1 .
+
+e.g：
+	#ls
+		查看当前目录下文件夹及文件，平铺模式
+	#ll
+		查看当前目录下文件夹及文件，列表模式，（=ls -l）
+	#ls -lrt
+		按时间排序
