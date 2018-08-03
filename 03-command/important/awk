@@ -1,7 +1,11 @@
 awk awk是一种编程语言，用于在linux/unix下对文本和数据进行处理
 Usage: 	awk [options] 'script' var=value file(s)
 		awk [options] -f scriptfile var=value file(s)
+
+参考资料：http://blog.51cto.com/oldboy/950730
+
 	-F 指定输入分隔符，可以是字符串或正则表达式（还可以使用FS=""）
+	NR 显示当前行的记录号或行号
 	$n 当前记录的第n个字段，比如n为1表示第一个字段，n为2表示第二个字段。
 	$0 为当前行内容
 	$NF 为最后一列，$(NF-1)为倒数第二列

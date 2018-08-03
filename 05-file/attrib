@@ -1,0 +1,182 @@
+文件属性
+
+[root@Ks-CentOS-6 test]# ls -lhi .
+total 16K
+284965 drwxr-xr-x 2 root root 4.0K Jul 25 10:18 dir1
+284966 drwxr-xr-x 2 root root 4.0K Jul 25 08:22 dir2
+284967 drwxr-xr-x 2 root root 4.0K Jul 25 08:22 dir3
+284968 -rw-r--r-- 1 root root    0 Jul 25 08:56 file4.txt~
+284971 -rw-r--r-- 1 root root    0 Jul 25 09:12 file5.txt~
+284977 -rw-r--r-- 1 root root   24 Jul 25 10:35 test.txt
+一     二         三 四   五     六  七  八  九    十
+
+一共十列
+
+第一列：文件的索引节点号，理解为文件的身份证号，系统读取文件时首先通过文件名找到inode，然后才能读取到文件内容
+	1. 	inode 索引节点（index node）
+		inode包括但不仅限于文件大小、属主、归属的用户组、类型、权限、修改时间，还包含指向文件实体的指针的功能（inode节点与--block的对应关系）等，但唯独不包含文件名（文件名一般放在上级目录的block里）
+		inode除了记录文件属性信息外，还会为每个文件进行信息索引，所以就有了inode值。操作系统通过系统指令通过inode值最快速度找到该文件
+		[root@Ks-CentOS-6 test]# df -i
+		Filesystem     Inodes IUsed  IFree IUse% Mounted on
+		/dev/sda3      546720 58125 488595   11% /
+		tmpfs          125376     1 125375    1% /dev/shm
+		/dev/sda1       51200    44  51156    1% /boot
+			查看各磁盘inode使用情况
+
+	2.	block 存储空间
+		一般block分为1k、2k、4k三种单位大小，一个block只能被一个文件使用（每个文件最少占用1block），block越多磁盘IO越多。如果小文件太多，设置block过大，会浪费block空间，也就是说浪费磁盘空间；如果文件太大，block设置太小，影响磁盘访问效率。一般设置为4k（CentOS 6及以前版本）
+第二列：文件类型及权限（共11个字符，第一个为类型，后面九个为文件权限，最后一个如果有为.，SELinux相关的标识）
+	文件类型：Linux中一切皆文件，类型包括普通文件（regular file:-）、目录（directory:d）、符号链接文件（link:l）、块设备文件（block:b）、字符设备文件（character:c）、管道文件（named pipe:p）、Socket文件（socket:s）等，前4个是常用文件类型，后3个只需要知道有就可以
+		普通文件按照内容又分为三种：
+			纯文本文件（ascll）文件内容可以直接读取到数据，可以用cat命令读取，比如配置文件几乎都是这种类型
+			二进制文件（binary）Linux中的命令程序就是属于这种文件
+			数据格式文件（data）特定格式文件，cat读取会乱码，如/var/log/wtmp将会记录登陆的信息，通过last命令读取，同理还有lastlog读取/var/log/lastlog
+		链接文件：
+			[root@Ks-CentOS-6 ~]# ls -ld /etc/rc.d/init.d /etc/init.d
+			lrwxrwxrwx. 1 root root   11 Jul 24 20:03 /etc/init.d -> rc.d/init.d
+			drwxr-xr-x. 2 root root 4096 Jul 24 21:08 /etc/rc.d/init.d
+		可以通过“file 文件名”查看文件类型
+			[root@Ks-CentOS-6 ~]# file /var/log/lastlog
+			/var/log/lastlog: data
+				查看到lastlog文件类型为数据格式文件data
+		文件扩展名分为：
+			1 .tar(打包的)、.tar.gz(打包压缩的)、.tgz、.zip、.tar.bz 表示压缩文件，创建命令一般为tar、gzip、unzip等
+			2 .sh 表示shell脚本
+			3 .pl 表示perl语言
+			4 .py 表示python语言
+			5 .html、.htm、.php、.jsp、.do 表示网页语言
+			6 .conf 表示配置文件
+			7 .rpm 表示rpm安装包
+	文件权限：每三个字符一组分别代表：属主（所属用户）权限位、属组（所属用户组）权限、其他人权限，第一个字符r为可读read、第二个字符w为可写write、第三个字符x为可执行execute
+		r read 		读 		4
+		w write		写 		2
+		x execute 	执行 	1
+		- -			没有		0
+		属主权限位	该文件的主人
+		属组权限位	当有用户加入到该组，即拥有该权限，该组为文件归属的组，不一定是文件属主所在的组
+		其他权限位	即不是属主也不是属组内用户的其他用户
+	练习：
+		1、stat命令取出表示权限的数字
+			[root@Ks-CentOS-6 0165]# stat lol
+			  File: `lol'
+			  Size: 0               Blocks: 0          IO Block: 4096   regular empty file
+			Device: 803h/2051d      Inode: 285094      Links: 1
+			Access: (0644/-rw-r--r--)  Uid: (    0/    root)   Gid: (    0/    root)
+			Access: 2018-07-30 09:55:00.059991217 +0800
+			Modify: 2018-07-30 09:55:00.059991217 +0800
+			Change: 2018-07-30 09:55:00.059991217 +0800
+		方法一：
+			[root@Ks-CentOS-6 0165]# stat lol | awk -F "[0/]+" 'NR==4 {print $2}'
+			644
+		方法二：
+			[root@Ks-CentOS-6 0165]# stat lol | sed -n 's#^.*(0\(.*\)/-.*$#\1#gp'
+			644
+		方法三：
+			[root@Ks-CentOS-6 0165]# stat lol | sed -n '4s#^.*(0##gp' | sed 's#/-.*$##g'
+			644
+		方法四：
+			[root@Ks-CentOS-6 0165]# stat lol | sed -n 4p | grep -o "[4-6]" | xargs | sed 's# ##g'
+			644
+		方法五：
+			[root@Ks-CentOS-6 0165]# stat lol | grep -o "[0-9]*" | sed -n 8p | awk -F "" '{print $2$3$4}'
+			644
+		方法六：
+			[root@Ks-CentOS-6 0165]# stat lol | sed -n 4p | cut -b 11-13
+			644
+		方法七（最佳方法）：
+			[root@Ks-CentOS-6 0165]# stat -c %a lol
+			644
+			#通过查看命令man stat，发现直接有参数可以实现
+		2、ls取出权限并用数字表示
+			[root@Ks-CentOS-6 0165]# ll lol
+			-rw-r--r-- 1 root root 0 Jul 30 09:55 lol
+		方法：
+			[root@Ks-CentOS-6 0165]# ll lol | cut -c 2-10
+			rw-r--r--
+			[root@Ks-CentOS-6 0165]# ll lol | cut -c 2-10 | tr "rwx-" "4210"
+			420400400
+			[root@Ks-CentOS-6 0165]# ll lol | cut -c 2-10 | tr "rwx-" "4210" | awk -F "" '{print $1+$2+$3""$4+$5+$6""$7+$8+$9}'
+			644
+
+第三列：为硬链接的数量（硬链接：同一个文件的不同访问入口）
+	链接：一种为硬链接（Hard Link），一种为软链接或符号链接（Symbolic Link or Soft Link）
+		软链接：即快捷方式（readlink查看指向）。使用ln -s创建的链接为软链接，其文件类型为l（L字母）。
+		软链接在生产中的作用：在程序代码中写入的地址都可以为软链接，当程序升级或多套系统切换时，可修改软链接指向即可
+			ln -s 源文件 目标文件
+		硬链接：是指通过索引节点（inode）来进行链接，有多个文件（可以是不同文件名）同时指向同一个inode的时候，这两个文件被称为互为硬链接。删除其中一个文件，另一个文件仍能索引到inode
+			ln 源文件 目标文件
+	当新建一个目录时，该目录的硬链接数量为2
+	当在该目录下再新建任意一个目录时，该目录的硬链接数量为3
+
+第四列：文件所有用户（属主），理解为他妈，Linux里文件必须有用户和组，满足存在需求
+	Linux里面用户的角色时通过UID（User IDentify）和GID（Group IDentify）识别的
+		UID：用户ID，相当于身份证，在系统中是唯一的
+		GID：组ID，相当于家庭ID
+	Linux里的用户分为三类：
+		超级用户：默认为root，他的UID和GID都是0，root在每台Linux操作系统中都是唯一且真实存在的，超级用户权限最大
+			生产环境下一般不用root用户，普通用户用sudo提权
+		普通用户：具有系统管理员权限的用户添加的，仅可以操作自己家目录里的文件。UID：500～65535
+		虚拟用户：与真实用户区分开来，安装系统后默认存在，且默认情况下大多数不能登录系统。UID：1～499
+	和用户相关的配置文件
+		/etc/passwd 用户配置文件（七列，分别是：名称、密码、UID、GID、说明、家目录、shell解释器）
+			shell解释器：cat /etc/shells
+		/etc/shadow 用户影子口令文件，存放密码的
+			名称 					账号名称
+			密码 					加密过的口令
+			最近修改密码时间 			从1970年1月1日起，到最近一次修改口令的天数
+			禁止修改密码的天数 		从1970年1月1日起，到用户可以修改密码的天数
+			用户必须修改密码口令的天数	从1970年1月1日起，到用户必须修改密码的天数
+			警告更改密码的期限 		在用户密码过期前多少天提醒用户更改密码
+			不活动时间 				在用户密码过期之后到禁用账户的天数
+			失效时间 					从1970年1月1日起，到用户被禁用的天数（useradd -f）
+			标志 					保留
+		/etc/group 用户组配置文件（四列：组名、组密码、GID、用户组成员）
+		/etc/gshadow 用户组影子口令文件（组名、组密码、组管理员账号、组成员）
+	查看用户信息id命令
+		#id
+			查看当前用户信息
+		#id ks
+			查看ks用户信息
+
+第五列：文件所有的组，理解为他家，该文件所有组，不一定为该文件所有用户所在的组，理解为孩子他妈不一定在孩子他家
+
+第六列：文件大小（Linux一切皆文件，目录其实也是文件）
+
+第七列：文件修改月份
+	时间属性分为三种：
+		修改时间为mtime（modify，修改内容）
+		访问时间atime（access，访问）
+		改变时间为ctime（change，修改属性）
+	[root@Ks-CentOS-6 ~]# ls -l --time-style=long-iso /test
+	total 52
+	-rw-r--r-- 1 root root   62 2018-07-26 06:05 dian
+	drwxr-xr-x 2 root root 4096 2018-07-25 10:18 dir1
+	drwxr-xr-x 2 root root 4096 2018-07-25 08:22 dir2
+	drwxr-xr-x 2 root root 4096 2018-07-25 08:22 dir3
+	-rw-r--r-- 1 root root  225 2018-07-26 08:38 email
+	-rw-r--r-- 1 root root    0 2018-07-25 08:56 file14
+	-rw-r--r-- 2 root root    8 2018-07-30 00:00 file24
+	-rw-r--r-- 2 root root    8 2018-07-30 00:00 file4.txt~
+	-rw-r--r-- 1 root root    0 2018-07-25 09:12 file5.txt~
+	-rw-r--r-- 1 root root   48 2018-07-26 06:28 foo
+	drwxr-xr-x 2 root root 4096 2018-07-30 00:28 link
+	drwxr-xr-x 2 root root 4096 2018-07-30 00:41 linkdir
+	-rw-r--r-- 1 root root  173 2018-07-26 08:48 test.txt
+	-rw-r--r-- 1 root root  146 2018-07-26 01:45 url
+	-rw-r--r-- 1 root root   62 2018-07-26 08:27 xiaoshu
+		规范时间显示格式
+	[root@Ks-CentOS-6 ~]# stat /test/test.txt
+	  File: `/test/test.txt'
+	  Size: 173             Blocks: 8          IO Block: 4096   regular file
+	Device: 803h/2051d      Inode: 284981      Links: 1
+	Access: (0644/-rw-r--r--)  Uid: (    0/    root)   Gid: (    0/    root)
+	Access: 2018-07-26 08:48:51.773263170 +0800
+	Modify: 2018-07-26 08:48:27.850267966 +0800
+	Change: 2018-07-26 08:48:27.861268303 +0800
+		通过stat命令查看单个文件具体属性
+
+第八列：文件修改日期
+
+第九列：文件修改时分
+
+第十列：文件名，严格角度来讲文件名并不算文件的属性，不在inode里，而是在上级目录的block里

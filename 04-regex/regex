@@ -1,8 +1,12 @@
 正则表达式 Regex
 
-本篇为Linux正则表达式，仅用于Linux三剑客
+正则表达式就是为了处理大量字符串而定义的一套规则和方法
 
-参考资料：https://www.cnblogs.com/hfutwyy/p/3415577.html
+本篇为Linux正则表达式，仅用于Linux三剑客，Linux正则表达式一般是以行为单位处理的
+
+为了测试方便，建议增加grep别名（alias grep='grep --color=auto'）并调整字符集为LC_ALL=C（export LC_ALL=C）
+
+参考资料：
 
 注：
 
@@ -15,12 +19,15 @@
 
 一、Linux正则表达式定义：
 
-Linux正则表达式（Regular Expression）主要遵从POSIX BRE（基本正则表达式）或者POSIX ERE（扩展正则表达式）标准。什么是POSIX呢，POSIX Portable Operating System Interface 可移植操作系统接口ERE是BRE的扩展版本，具体更强的处理能力，并增加了一些元字符（metacharactor）。
+Linux正则表达式（Regular Expression）主要遵从POSIX BRE（基本正则表达式：Basic Regular Expression）或者POSIX ERE（扩展正则表达式：Extended Regular Expression）标准。什么是POSIX呢，POSIX Portable Operating System Interface 可移植操作系统接口ERE是BRE的扩展版本，具体更强的处理能力，并增加了一些元字符（metacharactor）。
 
 Linux三剑客（awk、sed、grep）支持的表达式标准
 	awk		默认支持ERE
 	sed		默认支持BRE
+	sed -r 	可支持ERE
 	grep	默认支持BRE
+	grep -E 可支持ERE
+	grep -P 可支持Perl
 	egrep	默认支持ERE（该命令等同于grep -E）
 
 
@@ -76,7 +83,8 @@ Linux三剑客（awk、sed、grep）支持的表达式标准
 
 13、	"\S"	匹配任何可见字符，等价于[^ \f\n\r\t\v]
 
-14、	"\n"	调用一次第n个分组的表达式，分组使用"\(\)"（BRE）或"()"（ERE）
+14、	"\n"	后向引用
+			调用一次第n个分组的表达式，分组使用"\(\)"（BRE）或"()"（ERE）
 			\n的n在这个表达式中仅代表一个数字，\n这个表达式本身为换行符
 
 
@@ -104,7 +112,12 @@ Linux三剑客（awk、sed、grep）支持的表达式标准
 2、	"(exp)"		同BRE中的"\(\)"，分组用\n调用
 
 3、	"|"			条件或，即前面的字符或后面的字符
-				http|https	表示匹配http或https为开头的整行内容
+				http|https	表示匹配http或https
+				[root@Ks-CentOS-6 regex]# egrep "3306|1521" /etc/services
+				mysql           3306/tcp                        # MySQL
+				mysql           3306/udp                        # MySQL
+				ncube-lm        1521/tcp                # nCube License Manager
+				ncube-lm        1521/udp                # nCube License Manager
 
 
 六、等价，即等同的意思（大多数有限制，比如只能在ERE中使用或需要perl正则支持）
@@ -131,17 +144,17 @@ Linux三剑客（awk、sed、grep）支持的表达式标准
 
 七、字符集 字符集需要再在外面加一层[]才可以被语言识别
 
-[:alnum:] : 数字字母字符
-[:digit:] : 数字字符
-[:punct:] : 标点符号字符
-[:alpha:] : 字母字符
+[:alnum:] : 数字字母
+[:digit:] : 数字
+[:punct:] : 标点符号
+[:alpha:] : 字母字符（包括大小写）
 [:graph:] : 非空格字符
-[:space:] : 空格字符
-[:blank:] : 空格与定位字符
+[:space:] : 包括换行符、回车等在内的所有空白符
+[:blank:] : 空格与制表符（横向和纵向）
 [:lower:] : 小写字母字符
 [:upper:] : 大写字母字符
-[:cntrl:] : 控制字符
-[:print:] : 可显示的字符
+[:cntrl:] : 控制字符（ASCII字符集中的前32个）
+[:print:] : 可显示（打印）的字符
 [:xdigit:] : 16进制数字
 
 	[[:alpha:]!]
@@ -149,8 +162,26 @@ Linux三剑客（awk、sed、grep）支持的表达式标准
 	[^[:alnum:]]
 		匹配任意非数字字母的字符
 
+八、实用说明
 
-八、实例应用
+1、在vi/vim里，^ 表示一行的开头
+
+2、在vi/vim里，$ 表示一行的结尾
+
+3、在vi/vim里，^$ 表示空行
+
+4、.* 表示任意个数任意字符，即所有
+
+5、.不能显示空行
+
+6、\{n,m\} 在egrep和sed -r中可以去掉\，即{n,m}
+
+7、\{,m\} 在CentOS 5中报错
+
+8、字符集虽然简单，但没必要记忆
+
+
+九、实例应用
 
 1.	验证用户名和密码
 		"^[a-zA-Z]\w{5,15}$" 只能由6～16位字母数字下划线组成，且第一位必须为字母
@@ -255,4 +286,70 @@ Linux三剑客（awk、sed、grep）支持的表达式标准
 评注：提取ip地址时有用
 
 36.	匹配MAC地址
-	([A-Fa-f0-9]{2}\:){5}[A-Fa-f0-9] 每两位大小写字母a-f或数字位一组，每两组之间有一个:
+	([A-Fa-f0-9]{2}\:){5}[A-Fa-f0-9] 每两位大小写字母a-f或数字位一组，每两组之间有一个":"
+
+十、企业实战
+
+1、从ifconfig里取ip
+	方法一：
+		[root@Ks-CentOS-6 ~]# ifconfig eth0
+		eth0      Link encap:Ethernet  HWaddr 00:0C:29:A1:3E:C6
+		          inet addr:192.168.31.156  Bcast:192.168.31.255  Mask:255.255.255.0
+		          inet6 addr: fe80::20c:29ff:fea1:3ec6/64 Scope:Link
+		          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+		          RX packets:94185 errors:0 dropped:0 overruns:0 frame:0
+		          TX packets:6909 errors:0 dropped:0 overruns:0 carrier:0
+		          collisions:0 txqueuelen:1000
+		          RX bytes:6219949 (5.9 MiB)  TX bytes:428489 (418.4 KiB)
+		#原命令输出
+		[root@Ks-CentOS-6 ~]# ifconfig eth0 | sed -n '2p'
+		          inet addr:192.168.31.156  Bcast:192.168.31.255  Mask:255.255.255.0
+		#输出第二行
+		[root@Ks-CentOS-6 ~]# ifconfig eth0 | sed -n '2p' | sed 's#^.*dr:##g'
+		192.168.31.156  Bcast:192.168.31.255  Mask:255.255.255.0
+		#对ip地址前面的信息匹配并替换掉
+		[root@Ks-CentOS-6 ~]# ifconfig eth0 | sed -n '2p' | sed 's#^.*dr:##g' | sed 's#  B.*$##g'
+		192.168.31.156
+		#对ip地址后面的信息匹配并替换掉
+	方法二：
+		[root@Ks-CentOS-6 ~]# ifconfig eth0 | sed -n '2s#^.*dr:##gp'
+		192.168.31.156  Bcast:192.168.31.255  Mask:255.255.255.0
+		#在方法一的基础上少使用一个管道
+		[root@Ks-CentOS-6 ~]# ifconfig eth0 | sed -n '2s#^.*dr:##gp' | sed 's#  B.*$##g'
+		192.168.31.156
+		#这一步和方法一同理
+	方法三（sed的最佳方法）：
+		[root@Ks-CentOS-6 ~]# ifconfig eth0 | sed -n 's#^.*dr:\(.*\)  B.*$#\1#gp'
+		192.168.31.156
+		#通过前后匹配卡死中间内容，使用后向引用输出ip地址
+	方法四（最佳方法）：
+		[root@Ks-CentOS-6 ~]# ifconfig eth0 | awk -F "[ :]+" 'NR==2 {print $4}'
+		192.168.31.156
+	方法五：
+		[root@Ks-CentOS-6 ~]# ifconfig eth0 | awk NR==2 | grep -Po '(?<=:)(\d+.){3}(\d+)(?=  B)'
+		192.168.31.156
+		#"-P"为grep支持Perl的参数，此为扩展内容，了解即可。-o为只显示匹配项
+	方法六：
+		[root@Ks-CentOS-6 ~]# ifconfig eth0 | grep -Po '(?<=dr:)\S+'
+		192.168.31.156
+		#直接断言即可，\S为可见字符，inet6 addr:后面有空格
+	同理练习：
+		[root@Ks-CentOS-6 ~]# stat /etc/hosts
+		  File: `/etc/hosts'
+		  Size: 158             Blocks: 8          IO Block: 4096   regular file
+		Device: 803h/2051d      Inode: 39          Links: 2
+		Access: (0644/-rw-r--r--)  Uid: (    0/    root)   Gid: (    0/    root)
+		Access: 2018-07-30 01:02:16.251013744 +0800
+		Modify: 2018-07-25 00:24:35.808342296 +0800
+		Change: 2018-07-25 00:24:35.809342332 +0800
+		#取出该文件的权限代表数字
+		[root@Ks-CentOS-6 ~]# stat /etc/hosts | sed -n 's#^.*ss: (\(.*\)\/[-rwx].*$#\1#gp'
+		0644
+		#以"ss: ("匹配所取字段开头，以"/[-rwx]"匹配所取字段结尾，卡死中间内容，后向引用
+2、删除文本中的空行
+		[root@Ks-CentOS-6 test]# grep -v "^$" test.txt
+		#"^$"为空行，-v排除空行
+		[root@Ks-CentOS-6 test]# sed '/^$/d' test.txt
+		#d为删除匹配行
+		[root@Ks-CentOS-6 test]# awk '/^[^$]/' test.txt
+		#[^$]为排除直接结尾，^[^$]为以不是结尾开头的，即非空行

@@ -10,6 +10,7 @@ ls 查看目录（List）相当于windows的dir
 	-r 倒序排列（Reverse order while sorting）
 	-i 查看inode节点 （print the index number of each file）
 	--color==auto 列表显示颜色（也可以用在grep中）
+	--time-style=long-iso 格式化时间显示格式
 
 	如何查看文件夹，忽略文件：
 		1、ll查看，第一列以d开头的是文件夹 --> ll | grep "^d" （^表示以什么开头的）
@@ -31,3 +32,21 @@ e.g：
 		查看当前目录下文件夹及文件，列表模式，（=ls -l）
 	#ls -lrt
 		按时间排序
+	[root@Ks-CentOS-6 ~]# ls -l --time-style=long-iso /test
+	total 52
+	-rw-r--r-- 1 root root   62 2018-07-26 06:05 dian
+	drwxr-xr-x 2 root root 4096 2018-07-25 10:18 dir1
+	drwxr-xr-x 2 root root 4096 2018-07-25 08:22 dir2
+	drwxr-xr-x 2 root root 4096 2018-07-25 08:22 dir3
+	-rw-r--r-- 1 root root  225 2018-07-26 08:38 email
+	-rw-r--r-- 1 root root    0 2018-07-25 08:56 file14
+	-rw-r--r-- 2 root root    8 2018-07-30 00:00 file24
+	-rw-r--r-- 2 root root    8 2018-07-30 00:00 file4.txt~
+	-rw-r--r-- 1 root root    0 2018-07-25 09:12 file5.txt~
+	-rw-r--r-- 1 root root   48 2018-07-26 06:28 foo
+	drwxr-xr-x 2 root root 4096 2018-07-30 00:28 link
+	drwxr-xr-x 2 root root 4096 2018-07-30 00:41 linkdir
+	-rw-r--r-- 1 root root  173 2018-07-26 08:48 test.txt
+	-rw-r--r-- 1 root root  146 2018-07-26 01:45 url
+	-rw-r--r-- 1 root root   62 2018-07-26 08:27 xiaoshu
+		规范时间显示格式

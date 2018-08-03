@@ -1,13 +1,18 @@
 sed 流编辑器，可实现增删改替查等操作
+
+参考资料：http://blog.51cto.com/oldboy/949365
+
 	参数：
 	-i 保存到文件
 	-n/--quiet/——silent 仅显示script处理后的结果
+	-r 支持扩展正则表达式（ERE）
 
 	命令：
 	s 替换
 	g 处理文件中的所有匹配
 	p 打印行
 	d 删除选择的行
+	/.../ 为过滤...内容，语法为：sed -n '/.../p' 过滤...内容并显示该行
 
 	定界符：
 	/ : | #
@@ -86,4 +91,7 @@ e.g：
 	#echo hello WORLD | sed "s#$testsed#HELLO#"
 	HELLO WORLD
 		如果表达式中需要调用变量可使用双引号，纯内容使用单引号
+	[root@Ks-CentOS-6 ~]# ifconfig eth0 | sed -n '/inet addr/p'
+	inet addr:192.168.31.156  Bcast:192.168.31.255  Mask:255.255.255.0
+	#"/.../"，为过滤...内容
 	......

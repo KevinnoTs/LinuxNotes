@@ -190,6 +190,8 @@ Linux 学习笔记
 17. echo 打印/输出
 		-e 激活转义字符
 		\n 回车
+		\t tab
+		-n 不换行输出
 	#echo 'Hello world!!' >/data/k.txt
 		将Hello world!!输出到/data/k.txt中，如果没有该文件则创建，存在该文件则覆盖其中内容
 	#echo 'This is the last line.' >>/data/a.txt
@@ -562,6 +564,8 @@ Linux 学习笔记
 44. tar 解压缩
 	#tar zxvf k.tar.gz
 	显示过程
+	#tar zcvf dir1_$(date +%F_%H%M%S).tar.gz ./dir1/
+	压缩文件
 
 45. nl 显示行号
 	#nl nginx.conf
@@ -604,7 +608,11 @@ Linux 学习笔记
 		给自己创建的kd脚本加执行权限
 
 52. stat 查看文件属性（display file or file system status）
-	#[root@Ks-CentOS-6 test]# stat /etc/hosts
+		-c 转换格式输出显示
+			其包含的格式有：
+			%a 以八进制显示权限
+			%A 以-rwx显示权限
+	[root@Ks-CentOS-6 test]# stat /etc/hosts
 	  File: `/etc/hosts'
 	  Size: 158             Blocks: 8          IO Block: 4096   regular file
 	Device: 803h/2051d      Inode: 39          Links: 2
@@ -613,6 +621,9 @@ Linux 学习笔记
 	Modify: 2018-07-25 00:24:35.808342296 +0800
 	Change: 2018-07-25 00:24:35.809342332 +0800
 		查看hosts文件属性
+	[root@Ks-CentOS-6 0165]# stat -c %a lol
+	644
+	#使用参数，直接输出该文件的权限并用数字表示
 
 53. df 查看硬盘使用情况（report file system disk space usage）
 		-h 格式化大小
@@ -623,7 +634,7 @@ Linux 学习笔记
 	#df -i
 		查看inode使用情况
 
-54. which 查看命令路径
+54. which 查看二进制命令所在路径（从PATH变量中的路径中查找）
 	#which pwd
 	/bin/pwd
 		查看pwd命令的所在路径
@@ -671,6 +682,61 @@ Linux 学习笔记
 		8.0K    /tmp
 		1.1G    /usr
 		91M     /var
+
+61. date 日期时间相关命令
+		-s 修改时间
+		-d 显示偏移时间
+		+%F 显示日期,等同于+%Y-%m-%d
+		+%w 显示星期几
+		+%X 显示时间，等同于+%H:%M:%S，或+%T，X为12小时制，T为24小时制
+	[root@Ks-CentOS-6 ~]# date
+	Mon Jul 30 12:04:42 CST 2018
+
+	[root@Ks-CentOS-6 ~]# date +%y-%m-%d
+	18-07-30
+	#按照格式输出日期
+	[root@Ks-CentOS-6 ~]# date +%F
+	2018-07-30
+	#显示日期
+	[root@Ks-CentOS-6 ~]# date +%w
+	1
+	#显示周几
+	[root@Ks-CentOS-6 test]# date +%F -d "+2day"
+	2018-08-01
+	#显示两天后日期
+	[root@Ks-CentOS-6 test]# date +%F -d "-1440MIN"
+	2018-07-29
+	#显示1440分钟以前的日期，1440分就是一天
+
+	应用：
+	[root@Ks-CentOS-6 test]# tar zcvf dir1_`date +%F`.tar.gz ./dir1/
+	...
+	[root@Ks-CentOS-6 test]# ll
+	...
+	drwxr-xr-x 2 root root 4096 Jul 25 10:18 dir1
+	-rw-r--r-- 1 root root  190 Jul 30 12:12 dir1_2018-07-30.tar.gz
+	...
+	#打包文件，并将日期加入到文件名中
+
+	[root@Ks-CentOS-6 test]# tar zcvf dir1_$(date +%F_%H%M%S).tar.gz ./dir1/
+	...
+	[root@Ks-CentOS-6 test]# ll
+	...
+	drwxr-xr-x 2 root root 4096 Jul 25 10:18 dir1
+	-rw-r--r-- 1 root root  190 Jul 30 12:15 dir1_2018-07-30_121512.tar.gz
+	...
+	#打包文件，日期时间加入到文件名中
+
+62. env 查看所有系统变量
+
+63. whereis 查找文件
+		-b 二进制
+	[root@Ks-CentOS-6 test]# whereis -b ls
+	ls: /bin/ls
+
+64. locate 通过名字查找文件（find files by name），只能查找updatedb苦力的内容ß
+
+65. 
 
 系统目录
 	Linux目录一般情况下，可执行程序在/usr/bin，数据文件和帮助在/usr/share，运行时加载的配置文件和服务启动命令在/etc
@@ -733,11 +799,11 @@ Linux 学习笔记
 	/etc/resolv.conf 设置DNS，重启网卡环境会覆盖resolv.conf设置
 	/etc/hosts 域名与ip的解析表，相当于本地DNS
 	/etc/sysconfig/network 配置主机名（CentOS 6及以前）
-	/etc/fstab 开机要挂载的分区
+	/etc/fstab 硬盘文件系统开机自动挂在文件，即开机要挂载的分区
 	/etc/rc.local 用户自己的软件，写入文件，实现开机自启动
 	/etc/inittab 用于开机时设置系统级别
 	/etc/init.d/ 系统自启动目录，用来存放通过rpm或yum安装的软件的默认启动程序的目录
-	/etc/profile 系统全局环境变量
+	/etc/profile 系统全局环境配置文件
 	/etc/profile.d/ 系统登陆时加载该目录下的脚本文件
 	/etc/issue 记录用户登陆前显示的系统版本信息
 	/etc/motd 记录用户登陆后显示的信息
@@ -746,202 +812,129 @@ Linux 学习笔记
 	/usr/src/ 一般用户存放用户上传的源码包
 	/var/log/messages 系统日志，一般查看日志文件名语句为#ls -l /var/log/messages*，还可以通过dmesg来查看系统故障信息
 	/var/log/secure 查看系统登录信息日志，pop3, ssh, telnet, ftp都会记录，依赖rsyglog服务
+	/var/spool/clientmqueue 邮件临时目录
 	/proc/version 查看内核版本
 	/proc/cpuinfo CPU情况
 	/proc/meminfo 内存情况
 	/proc/loadavg 负载平均值信息，还可以通过top查看任务管理器，uptime查看开机时间及负载
 	/proc/mounts 查看挂载了哪些设备
+	/proc/interrupts 查看中断文件
 
 
 
-文件属性
-	[root@Ks-CentOS-6 test]# ls -lhi .
-	total 16K
-	284965 drwxr-xr-x 2 root root 4.0K Jul 25 10:18 dir1
-	284966 drwxr-xr-x 2 root root 4.0K Jul 25 08:22 dir2
-	284967 drwxr-xr-x 2 root root 4.0K Jul 25 08:22 dir3
-	284968 -rw-r--r-- 1 root root    0 Jul 25 08:56 file4.txt~
-	284971 -rw-r--r-- 1 root root    0 Jul 25 09:12 file5.txt~
-	284977 -rw-r--r-- 1 root root   24 Jul 25 10:35 test.txt
-	一     二         三 四   五     六  七  八  九    十
-
-	一共十列
-	第一列：文件的索引节点号，理解为文件的身份证号，系统读取文件时首先通过文件名找到inode，然后才能读取到文件内容
-	第二列：文件类型及权限（共11个字符，第一个为类型，后面九个为文件权限，最后一个如果有为.，SELinux相关的标识）
-		文件类型：Linux中一切皆文件，类型包括普通文件（regular file:-）、目录（directory:d）、符号链接文件（link:l）、块设备文件（block:b）、字符设备文件（character:c）、管道文件（named pipe:p）、Socket文件（socket:s）等，前4个是常用文件类型，后3个只需要知道有就可以
-			普通文件按照内容又分为三种：
-				纯文本文件（ascll）文件内容可以直接读取到数据，可以用cat命令读取，比如配置文件几乎都是这种类型
-				二进制文件（binary）Linux中的命令程序就是属于这种文件
-				数据格式文件（data）特定格式文件，cat读取会乱码，如/var/log/wtmp将会记录登陆的信息，通过last命令读取，同理还有lastlog读取/var/log/lastlog
-			链接文件：
-				[root@Ks-CentOS-6 ~]# ls -ld /etc/rc.d/init.d /etc/init.d
-				lrwxrwxrwx. 1 root root   11 Jul 24 20:03 /etc/init.d -> rc.d/init.d
-				drwxr-xr-x. 2 root root 4096 Jul 24 21:08 /etc/rc.d/init.d
-			可以通过“file 文件名”查看文件类型
-				[root@Ks-CentOS-6 ~]# file /var/log/lastlog
-				/var/log/lastlog: data
-					查看到lastlog文件类型为数据格式文件data
-			文件扩展名分为：
-				1 .tar(打包的)、.tar.gz(打包压缩的)、.tgz、.zip、.tar.bz 表示压缩文件，创建命令一般为tar、gzip、unzip等
-				2 .sh 表示shell脚本
-				3 .pl 表示perl语言
-				4 .py 表示python语言
-				5 .html、.htm、.php、.jsp、.do 表示网页语言
-				6 .conf 表示配置文件
-				7 .rpm 表示rpm安装包
-		文件权限：每三个字符一组分别代表：属主（所属用户）权限位、属组（所属用户组）权限、其他人权限，第一个字符r为可读read、第二个字符w为可写write、第三个字符x为可执行execute
-			r read 		读 		4
-			w write		写 		2
-			x execute 	执行 	1
-			- -			没有		0
-			属主权限位	该文件的主人
-			属组权限位	当有用户加入到该组，即拥有该权限，该组为文件归属的组，不一定是文件属主所在的组
-			其他权限位	即不是属主也不是属组内用户的其他用户
-	第三列：为硬链接的数量（硬链接：同一个文件的不同访问入口）
-		链接：一种为硬链接（Hard Link），一种为软链接或符号链接（Symbolic Link or Soft Link）
-			软链接：即快捷方式（readlink查看指向）。使用ln -s创建的链接为软链接，其文件类型为l（L字母）。
-			软链接在生产中的作用：在程序代码中写入的地址都可以为软链接，当程序升级或多套系统切换时，可修改软链接指向即可
-				ln -s 源文件 目标文件
-			硬链接：是指通过索引节点（inode）来进行链接，有多个文件（可以是不同文件名）同时指向同一个inode的时候，这两个文件被称为互为硬链接。删除其中一个文件，另一个文件仍能索引到inode
-				ln 源文件 目标文件
-	第四列：文件所有用户（属主），理解为他妈，Linux里文件必须有用户和组，满足存在需求
-		Linux里面用户的角色时通过UID（User IDentify）和GID（Group IDentify）识别的
-			UID：用户ID，相当于身份证，在系统中是唯一的
-			GID：组ID，相当于家庭ID
-		Linux里的用户分为三类：
-			超级用户：默认为root，他的UID和GID都是0，root在每台Linux操作系统中都是唯一且真实存在的，超级用户权限最大
-				生产环境下一般不用root用户，普通用户用sudo提权
-			普通用户：具有系统管理员权限的用户添加的，仅可以操作自己家目录里的文件。UID：500～65535
-			虚拟用户：与真实用户区分开来，安装系统后默认存在，且默认情况下大多数不能登录系统。UID：1～499
-		和用户相关的配置文件
-			/etc/passwd 用户配置文件（七列，分别是：名称、密码、UID、GID、说明、家目录、shell解释器）
-				shell解释器：cat /etc/shells
-			/etc/shadow 用户影子口令文件，存放密码的
-				名称 					账号名称
-				密码 					加密过的口令
-				最近修改密码时间 			从1970年1月1日起，到最近一次修改口令的天数
-				禁止修改密码的天数 		从1970年1月1日起，到用户可以修改密码的天数
-				用户必须修改密码口令的天数	从1970年1月1日起，到用户必须修改密码的天数
-				警告更改密码的期限 		在用户密码过期前多少天提醒用户更改密码
-				不活动时间 				在用户密码过期之后到禁用账户的天数
-				失效时间 					从1970年1月1日起，到用户被禁用的天数（useradd -f）
-				标志 					保留
-			/etc/group 用户组配置文件（四列：组名、组密码、GID、用户组成员）
-			/etc/gshadow 用户组影子口令文件（组名、组密码、组管理员账号、组成员）
-		查看用户信息id命令
-			#id
-				查看当前用户信息
-			#id ks
-				查看ks用户信息
-	第五列：文件所有的组，理解为他家，该文件所有组，不一定为该文件所有用户所在的组，理解为孩子他妈不一定在孩子他家
-	第六列：文件大小（Linux一切皆文件，目录其实也是文件）
-	第七列：文件修改月份，修改时间为mtime（modify），访问时间atime（access），改变时间为ctime（change）
-	第八列：文件修改日期
-	第九列：文件修改时分
-	第十列：文件名，严格角度来讲文件名并不算文件的属性
-
-	1. 	inode 索引节点（index node）
-		inode包括但不仅限于文件大小、属主、归属的用户组、类型、权限、修改时间，还包含指向文件实体的指针的功能（inode节点与--block的对应关系）等，但唯独不包含文件名（文件名一般放在上级目录的block里）
-		inode除了记录文件属性信息外，还会为每个文件进行信息索引，所以就有了inode值。操作系统通过系统指令通过inode值最快速度找到该文件
-		[root@Ks-CentOS-6 test]# df -i
-		Filesystem     Inodes IUsed  IFree IUse% Mounted on
-		/dev/sda3      546720 58125 488595   11% /
-		tmpfs          125376     1 125375    1% /dev/shm
-		/dev/sda1       51200    44  51156    1% /boot
-			查看各磁盘inode使用情况
-
-	2.	block 存储空间
-		一般block分为1k、2k、4k三种单位大小，一个block只能被一个文件使用（每个文件最少占用1block），block越多磁盘IO越多。如果小文件太多，设置block过大，会浪费block空间，也就是说浪费磁盘空间；如果文件太大，block设置太小，影响磁盘访问效率。一般设置为4k（CentOS 6及以前版本）
-
-
-
-
-
-
-重定向
-	0<	输入重定向
+通配符：通配符与正则表达式是两个概念，正则表达式主要用于三剑客（其中awk本身就是另一门语言），通配符用于bash命令行
+	* 表示零个或多个字符，通配符中表示所有，正则表达式表示个数
+		[root@Ks-CentOS-6 test]# ls *.sh
+		oldboy.sh  oldgirl.sh  test.sh
+			表示查看该目录下所有.sh文件
+		[cc@testvm1 ~]$ ls /dev/sda*
+		/dev/sda  /dev/sda1  /dev/sda2  /dev/sda3
+			显示sda开头任意结尾
+	? 匹配任意单个字符
+		[root@Ks-CentOS-6 test]# ls ????.sh
+		test.sh
+			查看任意四个字符的.sh文件
+		[cc@testvm1 ~]$ ls /dev/sda?
+		/dev/sda1  /dev/sda2  /dev/sda3
+			显示sda开头任意一个字符结尾
+		[cc@testvm1 ~]$ ls /dev/sd?
+		/dev/sda
+			显示sd开头任意一个字符结尾
+	; 连续不同命令的分隔符
+		[root@Ks-CentOS-6 test]# pwd;whoami
+		/test
+		root
+			分别运行两条命令
+	# 配置文件的注释
+	| 管道
+	~ 当前用户的家目录
+	- 上一次的目录路径
+	$ 变量前需要加的符号
+	/ 路径分隔符，单独使用表示根目录
+	0<	输入重定向，可简写为<
+		#xargs -n 2 </data/k.txt
+			从/data/k.txt中输入信息，并以两个为一组显示，仅显示并未修改/data/k.txt中内容
+		#tr ' ' '\n' </data/k.txt
+			从/data/k.txt中输人信息，并将空格替换为回车，仅显示并未修改/data/k.txt中内容
 	0<<	输入追加重定向
-	1>	输出重定向
-	1>>	输出追加重定向
+	1>	输出重定向，覆盖原内容，可简写为>
+		#>/data/k.txt
+			清除/data/k.txt中的内容
+		#echo 1 2 3 4 >/data/k.txt
+			输出1 2 3 4到/data/k.txt中
+		#cat >/data/k.txt
+			手动输入内容输出到/data/k.txt中，手动输入完成按Ctrl+C结束
+	1>>	输出追加重定向，追加到结尾
 	2>	错误重定向
+		#echo 'hello' 1>/data/a.txt 2>/data/b.txt
+			将hello输出到/data/a.txt中，如出现错误，将错误信息输入到/data/b.txt
+		#echo 'hello' 1>/data/a.txt 2>&1
+		#echo 'hello' &>/data/a.txt
+			将hello输出到/data/a.txt中，如出现错误，将错误信息输入到/data/a.txt中
 	2>>	错误追加重定向
-	#>/data/k.txt
-		清除/data/k.txt中的内容
-	#echo 1 2 3 4 >/data/k.txt
-		输出1 2 3 4到/data/k.txt中
-	#xargs -n 2 </data/k.txt
-		从/data/k.txt中输入信息，并以两个为一组显示，仅显示并未修改/data/k.txt中内容
-	#tr ' ' '\n' </data/k.txt
-		从/data/k.txt中输人信息，并将空格替换为回车，仅显示并未修改/data/k.txt中内容
-	#echo 'hello' 1>/data/a.txt 2>/data/b.txt
-		将hello输出到/data/a.txt中，如出现错误，将错误信息输入到/data/b.txt
-	#echo 'hello' 1>/data/a.txt 2>&1
-	#echo 'hello' &>/data/a.txt
-		将hello输出到/data/a.txt中，如出现错误，将错误信息输入到/data/a.txt中
-	#cat >/data/k.txt
-		手动输入内容输出到/data/k.txt中，手动输入完成按Ctrl+C结束
+	[0-9] 匹配范围内的数字
+		[cc@testvm1 ~]$ ls /dev/sda[0-9]
+		/dev/sda1  /dev/sda2  /dev/sda3
+			显示sda开头，0~9结尾
+	[abc] 匹配已出的任意字符
+		[cc@testvm1 ~]$ ls /dev/sda[135]
+		/dev/sda1  /dev/sda3
+			显示sda开头1/3/5结尾
+	''(单引号) 输出所见即所得，不具有变量置换功能
+		[root@Ks-CentOS-6 test]# echo 'date'
+		date
+		[root@Ks-CentOS-6 test]# echo '$LANG'
+		$LANG
+	""(双引号) 解析变量后输出，具有变量置换功能，不加引号相当于默认使用双引号
+		[root@Ks-CentOS-6 test]# echo "date"
+		date
+		[root@Ks-CentOS-6 test]# echo "$LANG"
+		en_US.UTF-8
+	``(反引号) tab按键上面的按键，反引号中间为命令，会优先执行，等价于$()
+		[root@Ks-CentOS-6 test]# echo "`date`"
+		Mon Jul 30 05:43:38 CST 2018
+		[root@Ks-CentOS-6 test]# echo "$(date)"
+		Mon Jul 30 05:43:33 CST 2018
+	\(反斜杠) 转义后面单个字符
+		e.g:
+		[cc@testvm1 ~]$ echo $P
 
-符号用法
+			首先查看$P变量，发现$P为空
+		[cc@testvm1 ~]$ P=5
+			定义$P，赋值为5
+		[cc@testvm1 ~]$ echo $P
+		5
+			查看变量，复制成功，$P为5
+		[cc@testvm1 ~]$ echo "Price is $P"
+		Price is 5
+			双引号中变量可以被调用
+		[cc@testvm1 ~]$ echo 'Price is $P'
+		Price is $P
+			单引号中变量无效
+		[cc@testvm1 ~]$ echo "Price is $$P"
+		Price is 1270P
+			计划显示Price is 5，在变量前加$，于$P冲突，解析为$$，输出1270
+		[cc@testvm1 ~]$ echo "Price is \$$P"
+		Price is $5
+			加反斜杠直接输出下一个字符，不解析
+		[cc@testvm1 ~]$ echo `echo $P`
+			反引号中的内容为执行语句，该句相当于直接输出echo $P
 	{} 序列
-	#echo {1..10}
-		输出显示1 2 3...10
-	#mkdir -p /data/{x,y}/test
-		在/data目录下分别创建x和y两个文件夹，再在x和y中创建test目录
-	#echo {1..3}{4..6}
-		输出显示14 15 16 24 25 26 34 35 36
-	#touch /data/{a..c}.txt
-		在/data目录创建a.txt b.txt c.txt
-
-	通配符
-	*		匹配零个或多个字符。
-	?		匹配任意单个字符。
-	[0-9]	匹配范围内的数字。
-	[abc]	匹配已出的任意字符。
-	e.g:
-	[cc@testvm1 ~]$ ls /dev/sda*
-	/dev/sda  /dev/sda1  /dev/sda2  /dev/sda3
-		显示sda开头任意结尾
-	[cc@testvm1 ~]$ ls /dev/sda?
-	/dev/sda1  /dev/sda2  /dev/sda3
-		显示sda开头任意一个字符结尾
-	[cc@testvm1 ~]$ ls /dev/sd?
-	/dev/sda
-		显示sd开头任意一个字符结尾
-	[cc@testvm1 ~]$ ls /dev/sda[0-9]
-	/dev/sda1  /dev/sda2  /dev/sda3
-		显示sda开头1~9结尾
-	[cc@testvm1 ~]$ ls /dev/sda[135]
-	/dev/sda1  /dev/sda3
-		显示sda开头1/3/5结尾
-
-	特殊字符
-	\(反斜杠)	转义后面单个字符
-	''(单引号)	转义所有的字符
-	""(双引号)	变量依然生效
-	``(反引号)	执行命令语句
-	e.g:
-	[cc@testvm1 ~]$ echo $P
-
-		首先查看$P变量，发现$P为空
-	[cc@testvm1 ~]$ P=5
-		定义$P，赋值为5
-	[cc@testvm1 ~]$ echo $P
-	5
-		查看变量，复制成功，$P为5
-	[cc@testvm1 ~]$ echo "Price is $P"
-	Price is 5
-		双引号中变量可以被调用
-	[cc@testvm1 ~]$ echo 'Price is $P'
-	Price is $P
-		单引号中变量无效
-	[cc@testvm1 ~]$ echo "Price is $$P"
-	Price is 1270P
-		计划显示Price is 5，在变量前加$，于$P冲突，解析为$$，输出1270
-	[cc@testvm1 ~]$ echo "Price is \$$P"
-	Price is $5
-		加反斜杠直接输出下一个字符，不解析
-	[cc@testvm1 ~]$ echo `echo $P`
-		反引号中的内容为执行语句，该句相当于直接输出echo $P
+		#echo {1..10}
+			输出显示1 2 3...10
+		#mkdir -p /data/{x,y}/test
+			在/data目录下分别创建x和y两个文件夹，再在x和y中创建test目录
+		#echo {1..3}{4..6}
+			输出显示14 15 16 24 25 26 34 35 36
+		#touch /data/{a..c}.txt
+			在/data目录创建a.txt b.txt c.txt
+		#cp a.txt{,.bak}
+			备份a.txt为a.txt.bak
+	! 逻辑非（not）
+	&& 当前一个命令执行成功时，执行后一个命令。并且的意思（and）
+	|| 当前一个命令执行失败时，执行后一个命令。或者的意思（or）
+	. 当前目录/使得文件生效，相当于source/隐藏问价/任意字符（正则表达式）
+	.. 上一级目录
 
 
 
@@ -961,9 +954,14 @@ Linux 学习笔记
 	[root@KS-CENTOS7 ~]# PS1='[\t-\u@\h \W]\$'
 	[23:00:37-root@KS-CENTOS7 ~]#
 
+	PATH 可执行命令所在路径，用冒号分割
+	#export PATH="$PATH:/root"
+		注意追加的话要加上之前的变量
+	LANG 字符集变量
+
 	OLDPWD 上一次目录
-	env | grep -i oldpwd
-	echo $OLDPWD
+	#env | grep -i oldpwd
+	#echo $OLDPWD
 
 查看帮助
 	#man pwd
@@ -1184,4 +1182,16 @@ Linux开机启动过程
 	7、	启动mingetty，进入登录界面
 
 
-
+快捷键：
+esc+.	调用上一条命令的路径
+ctrl+a 	光标移动到行首
+ctrl+e 	光标移动到行尾
+ctrl+c 	终止命令
+ctrl+d 	退出当前用户环境（注销）
+ctrl+l 	清屏
+ctrl+u 	剪切光标到开头的内容
+ctrl+k 	剪切光标到结尾的内容
+ctrl+r 	搜索已经使用过的命令
+ctrl+w 	清楚前一段内容
+ctrl+s 	挂起
+ctrl+q 	取消挂起
