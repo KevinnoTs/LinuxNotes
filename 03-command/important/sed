@@ -1,97 +1,412 @@
-sed 流编辑器，可实现增删改替查等操作
+sed 流编辑器（Steam EDitor），可实现增删改查等操作
 
-参考资料：http://blog.51cto.com/oldboy/949365
+参考资料：
+	http://blog.51cto.com/oldboy/949365
+	http://blog.oldboyedu.com/commands-sed/
 
-	参数：
+执行流程：sed软件是读取一行，处理一行，输出一行，再读取一行，处理一行，输出一行...
+
+注：本篇中默认变量n、m为自然数，..为字符串，exp为正则表达式
+
+Usage: sed [options] 'commands' file(s)
+
+
+常用选项（option）：
 	-i 保存到文件
-	-n/--quiet/——silent 仅显示script处理后的结果
+	-n 仅显示处理后的结果（同--quiet或——silent）
 	-r 支持扩展正则表达式（ERE）
+	-e 多点编辑，即对单个文件执行多条命令。前一个命令执行结果影响后一个命令，每个命令都需要加-e选项
+	--version 查看sed软件版本
 
-	命令：
-	s 替换
-	g 处理文件中的所有匹配
-	p 打印行
-	d 删除选择的行
-	/.../ 为过滤...内容，语法为：sed -n '/.../p' 过滤...内容并显示该行
 
-	定界符：
-	/ : | #
+常用命令（commands）：
+	a 	追加文本到指定行后，加空格接内容，等同于a\直接接内容
+	i 	插入文本到指定行前，加空格接内容，等同于i\直接接内容
+	d 	删除选择的行
+	c 	用新行取代旧行，加空格接内容，等同于c\直接接内容
+	s 	替换
+			g 处理文件中的所有匹配
+			ng 每一行从第n个匹配项开始，替换其他所有后面的匹配项
+			/ # | : 都是比较常用的替换命令定界符
+			& 表示在替换时引用查找的内容
+	p 	打印行，默认会输出2次匹配结果（1次为sed本身输出，1次为p命令输出），一般使用-n选项取消默认输出
+	n 	匹配行的下一行
+	{} 	当需要在已有匹配条件范围内使用多条命令时，用大括号将多条命令扩起来，并用分号隔开
+	!	前面为匹配条件，后面为命令。表示后面的命令对不在前面匹配条件内的行执行，如：!p、!d
 
-e.g：
-	#sed 's/hello/hi/' a.txt
-	hi world
-		s命令为替换，将a.txt中的hello，替换为hi，不写入文件只输出
-	#sed -n 's/hello/hi/p' a.txt
-	hi world
-		-n与p命令结合，只显示处理的行，不显示其他内容，不写入文件只输出
-	#sed 's/hello/hi/' a.txt
-	hi world
-	this is a test
-	hi hello world
-	#sed 's/hello/hi/g' a.txt
-	hi world
-	this is a test
-	hi hi world
-	#sed -n 's/hello/hi/p' a.txt
-	hi world
-	hi hello world
-	sed -n 's/hello/hi/pg' a.txt
-	hi world
-	hi hi world
-		只s命令替换所有行中第一个匹配，g命令替换所有匹配，-n与p命令搭配只用只输出处理的行，不写入文件只输出
-	#data]$ sed 's/hello/hi/2g' a.txt
-	hello world
-	this is a test
-	hello hi world
-	hello hi hi hi hi
-		/Ng，其中N代表自然数，表示从每一行的第几个匹配项进行处理，例子中为从每行第二个匹配项开始替换所有匹配，不写入文件只输出
-	#sed -n '2p' a.txt
-		只打印第二行
-	#sed '/^$/d' a.txt
-		删除空行
-	#sed '2d' a.txt
-		删除第二行
-	#sed '2,$d' a.txt
-		删除第二行到结尾行
-	#sed -n '$p' a.txt
-		只显示结尾行
-	#sed '/^[^h]/d' a.txt
-		删除所有非h开头的行，不包括空行，但包括空格开头的行
-	#echo This is a test line | sed 's/line/~ &!/g'
-	This is a test ~ line!
-		匹配项用&表示，在匹配项前后增加内容
-	#echo This is a test line | sed 's#\w\+#~ &!#g'
-	~ This! ~ is! ~ a! ~ test! ~ line!
-		\w\+ 表示任意单词均为匹配项
-	#echo 'loveable' | sed 's#\(love\)able#\1rs#'
-	lovers
-		\(..\)为匹配字符串，表示匹配loveable，..为love数字，\1为..中内容
-	#echo 'Price is $5' | sed 's/\$\([0-9]\)/\￥\1/'
-	Price is ￥5
-		\(..\)为匹配字符串，表示匹配$数字，..为[0-9]数字，\1为..中内容
-	#echo 'hello world' | sed 's#\(hello\) \(world\)#\2 \1#'
-	world hello
-		当有两个\(..\)匹配字符串时，第一个存入\1中，第二个存入\2中
-	#echo 'hello 23333' | sed 's#\([a-z]\+\) \([0-9]\+\)#\2 \1#'
-	23333 hello
-		\([a-z]\)+\表示匹配小写单词，\([0-9]\)+\表示匹配数字
-	#ifconfig | sed -n '2p' | sed 's#\([a-z]\+\) \([0-9]\+\)#\2#g'
-	    192.168.137.188  255.255.255.0  192.168.137.255
-		ifconfig读取第二行有关ip地址信息，去除掉前面的单词，只留ip地址，组合多个表达式使用通道“|”
-	#sed 's#hello#hi#g;s#this#that#' a.txt
-	hi world
-	that is a test
-		多个表达式也可以在引号内使用分号分开，建议使用通道
-	#sed -n 's#\(hello\) #\1  #pg' a.txt
-	hello  world
-	hello  hello  world
-	hello  hello  hello  hello  hello
-		从文件中读取，"hello "存进\1，并在所有匹配项后面加空格输出
-	#testsed=hello
-	#echo hello WORLD | sed "s#$testsed#HELLO#"
-	HELLO WORLD
-		如果表达式中需要调用变量可使用双引号，纯内容使用单引号
-	[root@Ks-CentOS-6 ~]# ifconfig eth0 | sed -n '/inet addr/p'
-	inet addr:192.168.31.156  Bcast:192.168.31.255  Mask:255.255.255.0
-	#"/.../"，为过滤...内容
-	......
+
+匹配条件：写在命令前，表示该命令对前面的匹配条件进行执行
+	n	第n行
+	n,m 	第n行到第m行
+	n,+m 	第n行开始往后数m行
+	n~m 	第n行开始，每m行操作一次，到结尾
+	n,$ 	第n行开始到结尾
+	/../ 	匹配到字符串..的行（仅该行）
+	/../,/.../ 	匹配到字符串..的行开始到匹配到字符串...的行结束
+	/../,$	匹配到字符串..的行到结尾
+	/../,n 	匹配到字符串..的行到第n行，如第n行前没有匹配到..字符串，则表示第n行后面匹配到..字符串的所有行
+	n,/../	第n行到匹配到字符串..的行，如第n行后没有匹配到..字符串，则表示第n行到结尾
+	/../,+n	匹配到字符串..的行往后数n行
+	/exp/	匹配正则表达式
+
+
+正则表达式：
+	^ 	匹配行开始
+	$ 	匹配行结束
+	. 	匹配一个非换行符的任意字符
+	* 	匹配0个或多个字符
+	\+ 	匹配1个或多个字符。加-r选项让sed命令支持扩展正则表达式，可写成+
+	[] 	匹配一个指定范围内的字符
+	[^] 匹配一个不在指定范围内的字符
+	\(..\) 	表示分组，匹配字符串并保存匹配的字符。加-r选项让sed命令支持扩展正则表达式，可写成(..)
+	\n 	后向引用，n为自然数，表示引用从左往右第n个分组的匹配项。sed最多可以保存9个分组引用。没有分组不能使用
+	\< 	匹配单词的开始
+	\> 	匹配单词的结束
+	x\{n\} 	重复前一个字符x，n次。加-r选项让sed命令支持扩展正则表达式，可写成x{n}
+	x\{n,\} 重复前一个字符x，至少n次。加-r选项让sed命令支持扩展正则表达式，可写成x{n,}
+	x\{n,m\} 	重复前一个字符x，n至m次。加-r选项让sed命令支持扩展正则表达式，可写成x{n,m}
+
+
+组合多个表达式：
+	sed '表达式' | sed '表达式'
+	等价于：
+	sed '表达式; 表达式'
+
+
+创建实例：
+	[root@Ks-CentOS-6 sed]# echo >>person.txt <<EOF
+	> 101,oldboy,CEO
+	> 102,zhangyao,CTO
+	> 103,Alex,COO
+	> 104,yy,CFO
+	> 105,feixue,CIO
+	> EOF
+
+
+功能：
+	增：
+		a 追加文本到指定行后，加空格接内容，等同于a\直接接内容
+		i 插入文本到指定行前，加空格接内容，等同于i\直接接内容
+
+		[root@Ks-CentOS-6 sed]# sed '2a 106,dandan,CSO' person.txt
+		101,oldboy,CEO
+		102,zhangyao,CTO
+		106,dandan,CSO
+		103,Alex,COO
+		104,yy,CFO
+		105,feixue,CIO
+		#使用a命令增加单行到指定行后
+
+		[root@Ks-CentOS-6 sed]# sed '2i 106,dandan,CSO' person.txt
+		101,oldboy,CEO
+		106,dandan,CSO
+		102,zhangyao,CTO
+		103,Alex,COO
+		104,yy,CFO
+		105,feixue,CIO
+		#使用i命令增加单行到指定行前
+
+		[root@Ks-CentOS-6 sed]# sed '2a 106,dandan,CSO\n107,bingbing,CCO' person.txt
+		101,oldboy,CEO
+		102,zhangyao,CTO
+		106,dandan,CSO
+		107,bingbing,CCO
+		103,Alex,COO
+		104,yy,CFO
+		105,feixue,CIO
+		#使用a命令增加多行到指定行后，通过\n进行换行，i命令同理
+
+	企业案例：
+		优化ssh配置，增加如下5行内容到/etc/ssh/sshd_config中的第13行前
+		Port 52113
+    	PermitRootLogin no
+    	PermitEmptyPasswords no
+    	UseDNS no
+    	GSSAPIAuthentication no
+
+    删：
+    	d 删除选择的行
+
+	    [root@Ks-CentOS-6 sed]# sed 'd' person.txt
+		[root@Ks-CentOS-6 sed]#
+		#删除所有行
+
+		[root@Ks-CentOS-6 sed]# sed '2d' person.txt
+		101,oldboy,CEO
+		103,Alex,COO
+		104,yy,CFO
+		105,feixue,CIO
+		#删除第二行
+
+		[root@Ks-CentOS-6 sed]# sed '2,3d' person.txt
+		101,oldboy,CEO
+		104,yy,CFO
+		105,feixue,CIO
+		#删除第2行第3行
+
+		[root@Ks-CentOS-6 sed]# sed '2~2d' person.txt
+		101,oldboy,CEO
+		103,Alex,COO
+		105,feixue,CIO
+		#删除第2行，并往后数2行，即删除第4行，再往后数两行，即第6行。本例因为没有第6行，所以只删除了第2、4行
+
+		[root@Ks-CentOS-6 sed]# sed '3,+1d' person.txt
+		101,oldboy,CEO
+		102,zhangyao,CTO
+		105,feixue,CIO
+		#从第3行开始，并往后数1行结束进行操作，即删除第2到第3行
+
+		[root@Ks-CentOS-6 sed]# sed '/zhangyao/d' person.txt
+		101,oldboy,CEO
+		103,Alex,COO
+		104,yy,CFO
+		105,feixue,CIO
+		#删除包含zhangyao的行
+
+		[root@Ks-CentOS-6 sed]# sed '/yy/,5d' person.txt
+		101,oldboy,CEO
+		102,zhangyao,CTO
+		103,Alex,COO
+		#从包行yy的行开始到第5行进行操作，即删除第4行到第5行
+
+		[root@Ks-CentOS-6 sed]# sed '/yy/,2d' person.txt
+		101,oldboy,CEO
+		102,zhangyao,CTO
+		103,Alex,COO
+		105,feixue,CIO
+		#从包含yy的行到第2行进行操作，因为前2行没有包含yy，所以从第3行开始只删除包含yy的行，即只删除第4行
+
+		[root@Ks-CentOS-6 sed]# sed '/^$/d' person.txt
+		#删除空行
+
+		[root@Ks-CentOS-6 sed]# sed '/^[^Hh]/d' person.txt
+		#删除所有不是H开头的行（不区分大小写），不包括空行，但包括空白符开头的行
+
+	改：
+		c 用新行取代旧行，加空格接内容，等同于c\直接接内容
+		s 替换（如单独使用，将每一行中第一个匹配项替换；通常搭配g使用，即替换所有匹配项）
+			g 处理文件中的所有匹配
+			ng 每一行从第n个匹配项开始，替换其他所有后面的匹配项
+			/ # | : 都是比较常用的替换命令定界符
+			& 表示在替换时引用查找的内容
+		分组替换：
+			即\(..\)即后向引用\n，sed中可记录最多9个分组匹配信息
+			加选项-r可以使用扩展正则表达式，即(..)为分组，\1为后向引用
+
+		[root@Ks-CentOS-6 sed]# sed '2c 106,dandan,CSO' person.txt
+		101,oldboy,CEO
+		106,dandan,CSO
+		103,Alex,COO
+		104,yy,CFO
+		105,feixue,CIO
+		#用命令输入新行替换掉原来第2行
+
+		[root@Ks-CentOS-6 sed]# sed 's#oldboy#oldgirl#g' person.txt
+		101,oldgirl,CEO
+		102,zhangyao,CTO
+		103,Alex,COO
+		104,yy,CFO
+		105,feixue,CIO
+		#将oldboy替换为oldgirl，如果加-i选项即可保存到文件
+
+		[root@Ks-CentOS-6 sed]# sed 's#,#;#g' person.txt
+		101;oldboy;CEO
+		102;zhangyao;CTO
+		103;Alex;COO
+		104;yy;CFO
+		105;feixue;CIO
+		#s与g搭配，替换每一行所有匹配项
+		[root@Ks-CentOS-6 sed]# sed 's#,#;#' person.txt
+		101;oldboy,CEO
+		102;zhangyao,CTO
+		103;Alex,COO
+		104;yy,CFO
+		105;feixue,CIO
+		#s不与g搭配，只替换每行第1个匹配项
+		[root@Ks-CentOS-6 sed]# echo 106,gao,CEO,CTO,COO,CFO,CIO | sed 's#,#;#3'
+		106,gao,CEO;CTO,COO,CFO,CIO
+		#仅修改该行第三个匹配项
+		[root@Ks-CentOS-6 sed]# echo 106,gao,CEO,CTO,COO,CFO,CIO | sed 's#,#;#3g'
+		106,gao,CEO;CTO;COO;CFO;CIO
+		#s与ng搭配（n代表自然数），表示每一行从第n个匹配项开始，替换其他所有后面的匹配项
+
+		[root@Ks-CentOS-6 sed]# sed '/CTO/,/CFO/s#$#,haha#' person.txt
+		101,oldboy,CEO
+		102,zhangyao,CTO,haha
+		103,Alex,COO,haha
+		104,yy,CFO,haha
+		105,feixue,CIO
+		#从包含CTO的行到包含CFO的行，将结尾替换为",haha"
+
+		[root@Ks-CentOS-6 sed]# echo I am oldboy teacher. | sed 's#^.*am \([a-z].*\) tea.*$#\1#g'
+		oldboy
+		#将I am oldboy teacher，替换为oldboy，匹配到oldboy，将其存入分组后向引用
+
+		[root@Ks-CentOS-6 sed]# sed '1,3s#C#==&==#g' person.txt
+		101,oldboy,==C==EO
+		102,zhangyao,==C==TO
+		103,Alex,==C==OO
+		104,yy,CFO
+		105,feixue,CIO
+		#使用&引用查找内容，进行替换，将第1行到第3行的C替换为==C==
+
+		[root@Ks-CentOS-6 sed]# echo This is a test line | sed 's#\w\+#~ &!#g'
+		~ This! ~ is! ~ a! ~ test! ~ line!
+		#sed虽然默认为BRE基本正则表达式，但支持+，表示前面的字符1个或多个，但是需要转义，即写成\+，加-r选项可写成+。
+		#\w表示任意字符、数字或下划线
+
+		[root@Ks-CentOS-6 sed]# sed -e 's#^10#20#g' -e 's#202#304#g' person.txt
+		201,oldboy,CEO
+		304,zhangyao,CTO
+		203,Alex,COO
+		204,yy,CFO
+		205,feixue,CIO
+		#-e选项为多点编辑，先执行前面的替换，再执行后面的替换，每一条命令都需要加-e选项
+
+		[root@Ks-CentOS-6 sed]# sed 's#101#201#;s#103#303#' person.txt
+		201,oldboy,CEO
+		102,zhangyao,CTO
+		303,Alex,COO
+		104,yy,CFO
+		105,feixue,CIO
+		#组合多个表达式，先运行分号前的命令，再运行分号后的命令
+
+	企业案例：
+		修改配置文件时，为了防止修改其他不必要修改的地方，替换时建议增加行号
+		[root@Ks-CentOS-6 sed]# sed '3s#0#9#' person.txt
+		101,oldboy,CEO
+		102,zhangyao,CTO
+		193,Alex,COO
+		104,yy,CFO
+		105,feixue,CIO
+		#将第3行的第1个0替换成9，其他行不变
+
+	企业案例：
+		知道行号注视该行内容
+		[root@Ks-CentOS-6 sed]# sed '1,3s/^/#/g' person.txt
+		#101,oldboy,CEO
+		#102,zhangyao,CTO
+		#103,Alex,COO
+		104,yy,CFO
+		105,feixue,CIO
+		#在第1到3行，开头增加#，达到注释的目的
+
+	企业案例：
+		批量修改开机自启动项
+		[root@Ks-CentOS-6 sed]# chkconfig --list | grep "3:on" | egrep -v "crond|network|rsyslog|sshd|sysstat" | awk '{print $1}' | sed -r 's#^(.*)#chkconfig \1 off#g' | bash
+		#思路：
+		#	1. 查询开机自启动服务列表
+		#	2. 筛选出运行级别为3的启动项
+		#	3. 排除掉需要启动的服务（新服务器必要服务为该5项：crond、network、rsyslog、sshd、sysstat）
+		#	4. 使用awk命令将第一项提取出来，即服务名
+		#	5. 使用sed替换，将服务名分组，后向引用给命令chkconfig，将其设置成off
+		#	6. bash运行该命令
+
+	企业案例：
+		批量改名：
+		假如有如下几个文件：
+			[root@Ks-CentOS-6 test]# ll stu_*
+			-rw-r--r-- 1 root root 0 Jul 30 16:47 stu_102999_1_finished.jpg
+			-rw-r--r-- 1 root root 0 Jul 30 16:47 stu_102999_2_finished.jpg
+			-rw-r--r-- 1 root root 0 Jul 30 16:47 stu_102999_3_finished.jpg
+			-rw-r--r-- 1 root root 0 Jul 30 16:47 stu_102999_4_finished.jpg
+			-rw-r--r-- 1 root root 0 Jul 30 16:47 stu_102999_5_finished.jpg
+		现在想要将这些文件后面的_finished去掉
+		stu_102999_1_finished.jpg
+		stu_102999_2_finished.jpg
+		stu_102999_3_finished.jpg
+		stu_102999_4_finished.jpg
+		stu_102999_5_finished.jpg
+		#通过正则表达式匹配文件名，使用&引用匹配内容
+		[root@Ks-CentOS-6 test]# ls stu* | sed -r 's#(^.*)_finished.*#\1.jpg#g'
+		stu_102999_1.jpg
+		stu_102999_2.jpg
+		stu_102999_3.jpg
+		stu_102999_4.jpg
+		stu_102999_5.jpg
+		#使用分组，并后向引用该分组，取得目标文件名
+		[root@Ks-CentOS-6 test]# ls stu_* | sed 's#\(^.*\)_finished.*#mv & \1.jpg#g'
+		mv stu_102999_1_finished.jpg stu_102999_1.jpg
+		mv stu_102999_2_finished.jpg stu_102999_2.jpg
+		mv stu_102999_3_finished.jpg stu_102999_3.jpg
+		mv stu_102999_4_finished.jpg stu_102999_4.jpg
+		mv stu_102999_5_finished.jpg stu_102999_5.jpg
+		#使用mv命令该名，先输出命令核对是否正确
+		[root@Ks-CentOS-6 test]# ls stu_* | sed 's#\(^.*\)_finished.*#mv & \1.jpg#g' | bash
+		[root@Ks-CentOS-6 test]#
+		#使用通道传给bash命令执行
+		[root@Ks-CentOS-6 test]# ll stu*
+		-rw-r--r-- 1 root root 0 Jul 30 16:47 stu_102999_1.jpg
+		-rw-r--r-- 1 root root 0 Jul 30 16:47 stu_102999_2.jpg
+		-rw-r--r-- 1 root root 0 Jul 30 16:47 stu_102999_3.jpg
+		-rw-r--r-- 1 root root 0 Jul 30 16:47 stu_102999_4.jpg
+		-rw-r--r-- 1 root root 0 Jul 30 16:47 stu_102999_5.jpg
+		#查看处理结果，done
+
+	查：
+		p 	打印行，默认会输出2次匹配结果（1次为sed本身输出，1次为p命令输出），一般使用-n选项取消默认输出
+		n 	用下一条命令处理匹配到的下一行（该命令不常用，了解即可）
+				一般该命令搭配-n选项和p命令同时使用，格式为 sed -n '{n;p}'
+		!p 	打印非前面条件匹配的行
+		{} 	在定位行执行的命令组，用分号隔开，如{n;p}为显示下一行，{=;p}显示行号
+
+		[root@Ks-CentOS-6 sed]# sed '2p' person.txt
+		101,oldboy,CEO
+		102,zhangyao,CTO
+		102,zhangyao,CTO
+		103,Alex,COO
+		104,yy,CFO
+		105,feixue,CIO
+		#使用p命令输出第2行，输出2次
+		[root@Ks-CentOS-6 sed]# sed -n '2p' person.txt
+		102,zhangyao,CTO
+		#使用-n选项，只输出第2行
+
+		[root@Ks-CentOS-6 sed]# sed -n '1~3p' person.txt
+		101,oldboy,CEO
+		104,yy,CFO
+		#显示第1行，并显示1+3行，再显示1+3+3行...本例中只显示第1行和第4行
+
+		[root@Ks-CentOS-6 sed]# sed -n '$p' person.txt
+		105,feixue,CIO
+		#只显示结尾行
+
+		[root@Ks-CentOS-6 sed]# ifconfig eth0 | sed -n '/Ethernet/{n;p}'
+		          inet addr:192.168.31.156  Bcast:192.168.31.255  Mask:255.255.255.0
+		#打印查找到的所有匹配项的下一行
+
+
+	企业案例：
+		打印输出配置文件，要求不输出注释
+		[root@Ks-CentOS-6 sed]# sed -n '/^[^#]/p' /etc/profile
+		#显示非注释行，不显示空行
+		[root@Ks-CentOS-6 sed]# sed -n '/^#/!p' /etc/profile
+		#显示非注释行，显示空行
+		[root@Ks-CentOS-6 sed]# sed '/^#/d' /etc/profile
+		#删除注释行，但保留空行
+		[root@Ks-CentOS-6 sed]# sed '/^[^#]/!d' /etc/profile
+		#删除注释行，同时删除空行
+		#"^#" 表示以#开头的行，不包括空行
+		#"^[^#]" 表示不是以#开头的行，不包括空行
+		#"^[^#]!" 表示除去不是以#开头的行，包括空行
+
+
+	与文件之间的读写：
+		-r filename 将文件中读出来的数据添加到匹配范围内的所有行的下面
+		-w filename 将输出结果，写入到文件中（覆盖原文件所有内容）
+
+		[root@Ks-CentOS-6 sed]# sed 's#IPADDR#IP#w ip.txt' /etc/sysconfig/network-scripts/ifcfg-eth0
+		[root@Ks-CentOS-6 sed]# cat ip.txt
+		IP=192.168.31.156
+		#操作网卡配置文件，替换IPADDR为IP，并将该行写入（write）ip.txt
+
+		[root@Ks-CentOS-6 sed]# sed -i '/IP/r /etc/sysconfig/network-scripts/ifcfg-eth0' ip.txt
+		[root@Ks-CentOS-6 sed]# cat ip.txt
+		IP=192.168.31.156
+		ONBOOT=yes
+		BOOTPROTO=none
+		IPADDR=192.168.31.156
+		NETMASK=255.255.255.0
+		GATEWAY=192.168.31.1
+		DNS1=202.106.0.20
+		#操作ip.txt文件，读取（read）出网卡配置文件，写入到IP字符串所在行的下一行
