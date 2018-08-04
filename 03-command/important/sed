@@ -1,12 +1,13 @@
 sed 流编辑器（Steam EDitor），可实现增删改查等操作
 
 参考资料：
-	http://blog.51cto.com/oldboy/949365
 	http://blog.oldboyedu.com/commands-sed/
+	http://blog.51cto.com/oldboy/949365
+	https://www.cnblogs.com/ctaixw/p/5860221.html
 
 执行流程：sed软件是读取一行，处理一行，输出一行，再读取一行，处理一行，输出一行...
 
-注：本篇中默认变量n、m为自然数，..为字符串，exp为正则表达式
+注：本篇中默认变量n、m为自然数，且n<m、..为字符串、exp为正则表达式
 
 Usage: sed [options] 'commands' file(s)
 

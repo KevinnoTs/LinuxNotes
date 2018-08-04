@@ -6,7 +6,7 @@
 
 为了测试方便，建议增加grep别名（alias grep='grep --color=auto'）并调整字符集为LC_ALL=C（export LC_ALL=C）
 
-参考资料：
+参考资料：https://baike.baidu.com/item/%E6%AD%A3%E5%88%99%E8%A1%A8%E8%BE%BE%E5%BC%8F/1700215
 
 注：
 
@@ -291,7 +291,6 @@ Linux三剑客（awk、sed、grep）支持的表达式标准
 十、企业实战
 
 1、从ifconfig里取ip
-	方法一：
 		[root@Ks-CentOS-6 ~]# ifconfig eth0
 		eth0      Link encap:Ethernet  HWaddr 00:0C:29:A1:3E:C6
 		          inet addr:192.168.31.156  Bcast:192.168.31.255  Mask:255.255.255.0
@@ -302,6 +301,7 @@ Linux三剑客（awk、sed、grep）支持的表达式标准
 		          collisions:0 txqueuelen:1000
 		          RX bytes:6219949 (5.9 MiB)  TX bytes:428489 (418.4 KiB)
 		#原命令输出
+	方法一：
 		[root@Ks-CentOS-6 ~]# ifconfig eth0 | sed -n '2p'
 		          inet addr:192.168.31.156  Bcast:192.168.31.255  Mask:255.255.255.0
 		#输出第二行

@@ -1,7 +1,7 @@
 Linux 学习笔记
 
 常用命令
-1. 	yum 安装程序包
+1.	yum 安装程序包
 		-y：取消安装过程中的确认
 	#yum install -y tree
 		安装tree命令
@@ -33,7 +33,7 @@ Linux 学习笔记
 	   Scientific support
 	   Security Tools
 
-2. 	cd 进入目录（Change directory）
+2.	cd 进入目录（Change directory）
 	Usage: cd [dir]
 	路径：
 	相对路径：不从/根开始
@@ -49,7 +49,7 @@ Linux 学习笔记
 	#cd -
 		回到上一次所在目录
 
-3. 	alias 系统别名的查看及修改
+3.	alias 系统别名的查看及修改
 	#alias
 		查看系统现有别名
 	#alias cp='cp -i'
@@ -61,7 +61,7 @@ Linux 学习笔记
 	#source ~/.bashrc
 		读取文件恢复内存中别名默认设置
 
-4. 	LANG 设置系统语言
+4.	LANG 设置系统语言
 	#LANG=en
 		设置系统语言为英文
 	#LANG="en_US.UTF-8"
@@ -73,7 +73,7 @@ Linux 学习笔记
 	#source /etc/sysconfig/i18n
 		从配置文件中恢复语言设置
 
-5. 	ifconfig 查看网络配置
+5.	ifconfig 查看网络配置
 	#ifconfig
 		查看当前网络配置，类似windows中的ipconfig
 	#ip add
@@ -82,25 +82,25 @@ Linux 学习笔记
         inet 192.168.137.188  netmask 255.255.255.0  broadcast 192.168.137.255
 		查看并提取ip地址相关信息（显示第二行）
 
-6. 	ifup	获取ip
+6.	ifup 启用网卡
 	#ifdown ens32
 	#ifup ens32
 		相当于禁用网卡再启动
 	#ifdown ens32 && ifup ens32
 		重启ens32这块网卡，比service network restart好在不影响其他网卡
 
-7. 	service network restart 重启网络服务
+7.	service network restart 重启网络服务
 	#service network restart
 		重启网络服务
 
-8. 	nmcli conn 查看网卡的UUID
+8.	nmcli conn 查看网卡的UUID
 	#nmcli conn
 	NAME   UUID                                  TYPE      DEVICE
 	ens32  0b3d9154-8a08-4bd9-aee9-26e124dedaf0  ethernet  ens32
 	ens34  95044a39-6fb1-3963-8a9f-cd8403e79348  ethernet  ens34
 		查看所有网卡的UUID
 
-9. 	route 来显示并设置网络路由表
+9.	route 来显示并设置网络路由表
 		-A 设置地址类型
 		-C 打印将Linux核心的路由缓存
 		-v 详细信息模式
@@ -119,7 +119,7 @@ Linux 学习笔记
 		查看路由表
 		route(选项)(参数)
 
-10. cat 文本输出，包括显示文件、创建文件、合并文件（Concatenate）
+10.	cat 文本输出，包括显示文件、创建文件、合并文件（Concatenate）
 		-n 对输出行编号
 		-b 对输出非空行编号
 		-s 连续空白行替换成一行空白行
@@ -134,7 +134,7 @@ Linux 学习笔记
 	#cat a.txt b.txt >> c.txt
 		把a.txt和b.txt的内容附加到c.txt中
 
-11. vi/vim 文本编辑器（Visual editor/Visual editor improved）
+11.	vi/vim 文本编辑器（Visual editor/Visual editor improved）
 		a/i/o 进入编辑模式
 		ESC 退出编辑模式
 		dd 命令行模式删除当前行
@@ -148,7 +148,7 @@ Linux 学习笔记
 		编辑网卡配置文件
 
 
-13. mkdir 创建目录（Make directory）
+13.	mkdir 创建目录（Make directory）
 	Usage: mkdir [OPTION]... DIRECTORY...
 		-p 忽略报错/递归，连续创建目录
 		-v 显示创建目录的结果或过程
@@ -159,13 +159,13 @@ Linux 学习笔记
 	#mkdir -p /data/K/test1/ /data/K/test2
 		依次在根目录下创建data，在data下创建K，在K下创建test1和test2目录
 
-14. pwd 查看当前目录路径（Print working directory）
+14.	pwd 查看当前目录路径（Print working directory）
 		-L 显示路径，默认参数
 		-P 显示物理路径，忽略快捷方式
 	#pwd
 		查看当前目录路径，相当于echo $PWD
 
-15. touch 创建文件或更新时间戳
+15.	touch 创建文件或更新时间戳
 	Usage: touch [OPTION]... FILE...
 		创建文件不需要参数
 		-a 只改变访问时间
@@ -177,7 +177,7 @@ Linux 学习笔记
 	#stat /data/k.txt
 		查看/data/k.txt的文件属性
 
-16. rm 删除文件或文件夹（ReMove）
+16.	rm 删除文件或文件夹（ReMove）
 		-f 强制删除 （Force）
 		-r 删除目录 （Recursive）
 		-i 删除前提示
@@ -187,7 +187,7 @@ Linux 学习笔记
 	建议如果非必要，使用mv命令移动到/tmp/目录
 	如果非要删除，建议cd进入当前目录，使用find . -type f(d) -name "" | xargs rm -i删除，进入当前路径，避免删错
 
-17. echo 打印/输出
+17.	echo 打印/输出
 		-e 激活转义字符
 		\n 回车
 		\t tab
@@ -202,11 +202,11 @@ Linux 学习笔记
 		字体颜色码：重置=0，黑色=30，红色=31，绿色=32，黄色=33，蓝色=34，洋红=35，青色=36，白色=37
 		背景颜色码：重置=0，黑色=40，红色=41，绿色=42，黄色=43，蓝色=44，洋红=45，青色=46，白色=47
 
-18. clear 清屏
+18.	clear 清屏
 	#clear
 		清屏，相当于快捷键Ctrl+l
 
-19. tr 替换
+19.	tr 替换
 	#echo 1 2 3 4 >/data/k.txt
 	#tr ' ' '\n' </data/k.txt
 	1
@@ -215,7 +215,7 @@ Linux 学习笔记
 	4
 		将/data/k.txt中的空格替换成换行，内容并未写入k.txt中，只是将输出结果替换
 
-20. tree 树命令，查看目录结构
+20.	tree 树命令，查看目录结构
 	Usage: tree [OPTION]... DIRECTORY...
 		-a 显示所有文件，包括隐藏文件（Linux中以.开头的文件即隐藏文件）
 		-d 只显示目录，不显示文件
@@ -255,7 +255,7 @@ Linux 学习笔记
 	#useradd KevinnoTs
 		创建用户KevinnoTs
 
-24. passwd 修改密码
+24.	passwd 修改密码
 	Usage: passwd [OPTION...] <accountName>
 	#passwd KevinnoTs
 		修改KevinnoTs密码（交互式，可以用户自己操作）
@@ -266,7 +266,7 @@ Linux 学习笔记
 	Usage: su [options] - [USER [arg]...]
 	#su - KevinnoTs
 		切换用户，切记加“-”
-26. whoami 打印当前用户
+26.	whoami 打印当前用户
 	#whoami
 		查看当前用户，相当于id -un
 
@@ -407,7 +407,7 @@ Linux 学习笔记
 	#reboot
 	#init 6
 
-33.	history	历史
+33.	history 历史
 	#history
 		查看输入命令的历史
 	#history -c
@@ -435,7 +435,7 @@ Linux 学习笔记
 	#vim /etc/sysconfig/network
 		编辑network文件修改hostname行，重启生效（CentOS 6及以前版本）
 
-35. mount 挂载，所有新接入设备如果不挂载就不能被Linux访问
+35.	mount 挂载，所有新接入设备如果不挂载就不能被Linux访问
 
 	#mount /dev/cdrom /mnt/cdrom
 		将CDROM挂在到/mnt/cdrom目录了
@@ -455,7 +455,7 @@ Linux 学习笔记
 	#fdisk -l
 		查看硬盘分区
 
-36. blkid 查看磁盘UUID（只能root用户）
+36.	blkid 查看磁盘UUID（只能root用户）
 	#blkid
 	/dev/sr0: UUID="2017-09-06-10-51-00-00" LABEL="CentOS 7 x86_64" TYPE="iso9660" PTTYPE="dos"
 	/dev/sda1: UUID="111da2b8-ef17-448c-ac9a-12ec8b94dbc5" TYPE="xfs"
@@ -463,7 +463,7 @@ Linux 学习笔记
 	/dev/sda3: UUID="87f479e2-fdc4-49be-b1f9-a0e95107b0aa" TYPE="xfs"
 		查看所有磁盘设备（分区）的UUID
 
-37. cp 复制拷贝文件或目录（CoPy）
+37.	cp 复制拷贝文件或目录（CoPy）
 	Usage: cp [OPTION...] SOURCE... DIRECTORY
 		-a 递归复制并保留其属性，包括链接，-dpr
 		-d 复制链接属性 （no Dereference）
@@ -485,7 +485,7 @@ Linux 学习笔记
 	#cp /etc/ssh/sshd_config{,.ori}
 		将该文件备份为.ori
 
-38. mv 剪切或重命名（MoVe (rename) files）
+38.	mv 剪切或重命名（MoVe (rename) files）
 	Usage: mv [OPTION]... SOURCE... DIRECTORY
 		-i 覆盖前提示 （Interactive: prompt before overwrite）
 	#mv /home/cc/test/data/ks/ /tmp/
@@ -493,7 +493,7 @@ Linux 学习笔记
 	#mv file{4,6}.txt
 		将file4改名为file6
 
-39. find 查找（五星级命令）
+39.	find 查找（五星级命令）
 	Usage: find [-H] [-L] [-P] [path...] [expression]
 		[-H] [-L] [-P] 表示如何处理符号链接
 		[path...] 为查找路径
@@ -524,7 +524,7 @@ Linux 学习笔记
 	#find . -type f -name "*.txt" -ok mv {} dir1/ \;
 		将本目录下的所有txt文件移动到dir1目录下，移动每个文件时需要确认
 
-40. xargs 读取输入数据重新格式化后输出
+40.	xargs 读取输入数据重新格式化后输出
 		-n 格式化几列，默认为所有内容一行输出，如：-n 2位格式化为两列
 		-i 将输出一行一行的赋值给{}，让不支持批处理的命令按行执行
 	#cat k.txt
@@ -561,21 +561,21 @@ Linux 学习笔记
 	/home/cc/test/data/3.txt /home/cc/test/data/k.txt
 		查找/home/cc及其子目录下所有文件，除文件名中带有“.b”的，其他文件分两列显示
 
-44. tar 解压缩
+44.	tar 解压缩
 	#tar zxvf k.tar.gz
 	显示过程
 	#tar zcvf dir1_$(date +%F_%H%M%S).tar.gz ./dir1/
 	压缩文件
 
-45. nl 显示行号
+45.	nl 显示行号
 	#nl nginx.conf
 	显示该文件并标记行号
 
-46. less 和more相反，一次一屏。回车是一次一行，空格是一次一屏，按“上”回退一行，B可以回退一屏
+46.	less 和more相反，一次一屏。回车是一次一行，空格是一次一屏，按“上”回退一行，B可以回退一屏
 
-47. more 按页显示，一次一屏。回车是一次一行，空格是一次一屏，不能回退
+47.	more 按页显示，一次一屏。回车是一次一行，空格是一次一屏，不能回退
 
-48. wc 显示总行数、总字符数等
+48.	wc 显示总行数、总字符数等
 		-l 显示总行数
 		-L 显示字符数
 	[root@testvm2 oldboy]# ps -ef | grep "/sshd" | grep -v grep
@@ -597,17 +597,22 @@ Linux 学习笔记
 	sshd            0:off   1:off   2:on    3:on    4:on    5:on    6:off
 	#chkconfig --level 3 sshd on
 
-50. ln 创建链接（快捷方式）
+50.	ln 创建链接（快捷方式）make LiNks between files
+	Usage: ln [OPTION]... [-T] TARGET LINK_NAME   (1st form)
+	  or:  ln [OPTION]... TARGET                  (2nd form)
+	  or:  ln [OPTION]... TARGET... DIRECTORY     (3rd form)
+	  or:  ln [OPTION]... -t DIRECTORY TARGET...  (4th form)
+	  	-s 创建软连接（Symbolic links），默认不加参数为创建硬链接
 	#ln file1 file2
 		创建硬链接，前面为源文件名，后面为目标文件名。注意：文件夹不能创建硬链接
 	#ln -s /etc/init.d/sshd /etc/rc.d/rc3.d/S55sshd
 		创建开机自启sshd软链接，前面为源，后面为目标，数字为目标进程里控制的启动与关闭的顺序
 
-51. chmod 修改权限
+51.	chmod 修改权限
 	#chmod +x /etc/init.d/kd
 		给自己创建的kd脚本加执行权限
 
-52. stat 查看文件属性（display file or file system status）
+52.	stat 查看文件属性（display file or file system status）
 		-c 转换格式输出显示
 			其包含的格式有：
 			%a 以八进制显示权限
@@ -625,7 +630,7 @@ Linux 学习笔记
 	644
 	#使用参数，直接输出该文件的权限并用数字表示
 
-53. df 查看硬盘使用情况（report file system disk space usage）
+53.	df 查看硬盘使用情况（report file system disk space usage）
 		-h 格式化大小
 		-i inode使用情况
 	#df -h
@@ -634,20 +639,26 @@ Linux 学习笔记
 	#df -i
 		查看inode使用情况
 
-54. which 查看二进制命令所在路径（从PATH变量中的路径中查找）
+54.	which 查看二进制命令所在路径（从PATH变量中的路径中查找）
 	#which pwd
 	/bin/pwd
 		查看pwd命令的所在路径
 
-55. last 查看用户的登录信息（show listing of last logged in users），对应的文件为/var/log/wtmp
+55.	last 查看用户的登录信息（show listing of last logged in users），对应的文件为/var/log/wtmp
 
 56.	lastlog	显示最近登录的用户信息（reports the most recent login of all users or of a given user），对应文件为/var/log/lastlog
 
-57. dumpe2fs 查看文件系统内部信息（包括元数据）
+57.	dumpe2fs 查看文件系统内部信息（包括元数据）
 
-58.	file 查看文件类型
+58.	file 查看文件类型（determine file type），同时也可以查看软链接的目标文件
+	[root@Ks-CentOS-6 ~]# file /etc/rc.d/rc3.d/S55sshd
+	/etc/rc.d/rc3.d/S55sshd: symbolic link to `../init.d/sshd'
+	#查看软链接的源地址
+	[root@Ks-CentOS-6 ~]# file /sbin/init
+	/sbin/init: ELF 64-bit LSB shared object, x86-64, version 1 (SYSV), dynamically linked (uses shared libs), for GNU/Linux 2.6.18, stripped
+	#查看系统位数的另一种方法
 
-59. id 查看用户信息
+59.	id 查看用户信息
 	#id
 		查看当前用户信息
 	#id ks
@@ -683,7 +694,7 @@ Linux 学习笔记
 		1.1G    /usr
 		91M     /var
 
-61. date 日期时间相关命令
+61.	date 日期时间相关命令
 		-s 修改时间
 		-d 显示偏移时间
 		+%F 显示日期,等同于+%Y-%m-%d
@@ -727,16 +738,46 @@ Linux 学习笔记
 	...
 	#打包文件，日期时间加入到文件名中
 
-62. env 查看所有系统变量
+62.	env 查看所有系统变量
 
-63. whereis 查找文件
+63.	whereis 查找文件
 		-b 二进制
 	[root@Ks-CentOS-6 test]# whereis -b ls
 	ls: /bin/ls
 
-64. locate 通过名字查找文件（find files by name），只能查找updatedb苦力的内容ß
+64.	locate 通过名字查找文件（find files by name），只能查找updatedb苦力的内容ß
 
-65. 
+65.	readlink 读取软链接的源地址
+	[root@Ks-CentOS-6 ~]# readlink /etc/rc.d/rc3.d/S55sshd
+	../init.d/sshd
+
+66.	rename 重命名工具（Rename files）
+	Usage: rename from to file...
+		from 	文件名中需要修改的部分
+		to 		from部分替换为的内容
+		file 	文件名，可以使用通配符
+
+67.	basename 打印文件名，去掉路径（strip directory and suffix from filenames）
+	[root@Ks-CentOS-6 ~]# basename /etc/rc.d/rc3.d/S55sshd
+	S55sshd
+
+68.	dirname 打印机文件路径，去掉文件名（strip non-directory suffix from file name）
+	[root@Ks-CentOS-6 ~]# dirname /etc/rc.d/rc3.d/S55sshd
+	/etc/rc.d/rc3.d
+
+69.	md5sum 计算和校验文件的md5值（compute and check MD5 message digest）,链接文件和源文件md5值时一样的，其他文件的md5值唯一
+	Usage: md5sum [OPTION]... [FILE]...
+		-t 读取md5值，该选项默认
+		-c 检查md5值
+	[root@Ks-CentOS-6 md5]# md5sum md5test.txt
+	b6583e4031087ba6058d35be87bdcff7  md5test.txt
+	#查看问价md5值
+	[root@Ks-CentOS-6 md5]# md5sum md5test.txt > md5.log
+	#将文件md5值保存到文件中
+	[root@Ks-CentOS-6 md5]# md5sum -c md5.log
+	md5test.txt: OK
+	#通过文件中的md5值匹配文件
+
 
 系统目录
 	Linux目录一般情况下，可执行程序在/usr/bin，数据文件和帮助在/usr/share，运行时加载的配置文件和服务启动命令在/etc
