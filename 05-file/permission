@@ -1,1 +1,314 @@
 Linux 文件权限
+
+rwxr-xr-x
+
+文件权限：
+	每三个字符一组分别代表：
+		属主（所属用户）权限位	该文件的主人
+		属组（所属用户组）权限	当有用户加入到该组，即拥有该权限，该组为文件归属的组，不一定是文件属主所在的组
+		其他人权限			即不是属主也不是属组内用户的其他用户
+	第一个字符r为可读read，如果有此权限，该位置显示为r，如无此权限，该位置显示为-
+	第二个字符w为可写write，如果有此权限，该位置显示为w，如无此权限，该位置显示为-
+	第三个字符x为可执行execute，如果有此权限，该位置显示为x，如无此权限，该位置显示为-
+		r read 		读 		4
+		w write		写 		2
+		x execute 	执行 	1
+		- 			没有		0	表示没有该项权限
+
+	对文件各权限的说明：
+		r：表示具有读取、阅读文件内容的权限
+		w：表示具有新增、修改文件内容的权限
+			如果没有r配合，vi编辑器不能编辑（可强制编辑），echo可以重定向或追加
+			删除文件（修改文件名等）是受父目录权限控制的。因为文件名是保存在上级目录的block里的，而删除只是破坏inode和block的对应关系
+		x：表示具有执行文件的权限
+			文件本身要能够执行
+			普通用户同时还要具备r权限才能执行
+			root只要有x权限就可以执行
+
+	对目录各权限的说明：
+		r：表示具有浏览目录下面文件及子目录的权限，即ls dir
+			如果没有x权限，不能进入到目录里，即不能cd dir
+			如果没有x权限，ls会提示权限不够，只能看到目录下文件的文件名
+		w：表示具有增加、删除或修改目录内文件名的权限（需要x权限配合）
+		x：表示具有进入目录权限，即cd dir。但没有r权限无法列表文件及目录，没有w权限无法新建和删除
+
+	超级用户创建的文件默认权限时644，创建文件夹默认权限时755，用户为root，用户组为root
+
+	umask值 控制用户创建文件或目录时的默认权限的一个值
+		默认创建文件的最大权限是666
+		默认创建目录的最大权限是777
+	umask计算方法：
+		1. 直接减法
+			文件：
+				当umask全为偶数时，直接用666做减法减去umask最后三位
+				当umask存在奇数位时，用666减去umask最后三位，并在umask奇数位加1
+			目录：
+				直接减去umask值的最后三位
+		2. 8进制字母减法
+			将umask值转换为字母形式
+			文件：
+				在666即rw-rw-rw-基础上取消umask表示的权限
+			目录
+				在777即rwxrwxrwx基础上取消umask表示的权限
+
+	特殊权限位：suid、sgid、sticky
+		suid
+			只能运用在可执行文件上，当用户执行时，会拥有该文件属主的权限，比如passwd命令
+			该属性显示在权限位第三位，即属主x的位置，如果原权限有x则显示为s，无x则显示为S
+			使用数字修改该特殊权限位，在三位权限数字前加4
+			使用字母修改该特殊权限位，使用u+s
+		sgid
+			可以运用在目录或可执行文件上，当用户执行文件或对目录进行操作时，会拥有该文件属组的权限，比如locate命令
+			该属性显示在权限位第六位，即属组x的位置，如果原权限有x则显示为s，无x则显示为S
+			使用数字修改该特殊权限位，在三位权限数字前加2
+			使用字母修改该特殊权限位，使用g+s
+		sticky
+			只能运用在目录上，表示只有属主和root可以删除该目录及其目录下的子目录和文件，比如/tmp目录
+			该属性显示在权限位第九位，即其他用户x的位置，如果原权限有x则显示为t，无x则显示为T
+			使用数字修改特殊权限位，在三位权限数字前加1
+			使用字母修改该特殊权限位，使用o+t
+
+
+相关命令：
+1.	useradd 创建用户
+		Usage: useradd [options] LOGIN
+	[root@Ks-CentOS-6 test]# useradd ks -g kshome
+	#创建一个用户ks，让其默认在kshome用户组中
+
+2.	groupadd 创建用户组
+		Usage: groupadd [options] group
+	[root@Ks-CentOS-6 test]# groupadd kshome
+	#创建用户组kshome
+
+3.	id 查看用户信息
+		Usage: id [OPTION]... [USERNAME]
+	[root@Ks-CentOS-6 ~]# id
+	uid=0(root) gid=0(root) groups=0(root)
+	#查看当前用户信息
+	[root@Ks-CentOS-6 ~]# id ks
+	uid=500(ks) gid=500(kshome) groups=500(kshome)
+	#查看指定用户信息
+
+4.	usermod 编辑用户信息（modify a user account）
+		Usage: usermod [options] LOGIN
+	[root@Ks-CentOS-6 test]# usermod -g kshome ks
+	#将其加入到kshome用户组
+
+5.	chmod 修改文件权限（CHange file MODe bits）
+		Usage: chmod [OPTION]... MODE[,MODE]... FILE...
+		数字权限：
+			r 	4
+			w 	2
+			x 	1
+			-	0
+			rwx 7
+			r-x 5
+			...
+		字母权限：
+			u 	给属主设置权限（the User who owns it）
+			g 	给属组设置权限（other users in the file’s Group）
+			o 	给其他用户设置权限（Other users not in the file’s group）
+			a 	给所有用户设置权限（All users）
+			+	添加权限（原来的不动，增加）
+			-	取消权限（原来的不动，减少）
+			=	将权限设置为（原来的清空，设置成等号后面的）
+		选项：
+			-R 递归（recursive）
+	[root@Ks-CentOS-6 ~]# chmod -R 755 /testu
+	[root@Ks-CentOS-6 ~]# ll /testu
+	total 8
+	drwxr-xr-x 2 root root   4096 Jul 31 01:14 test
+	-rwxr-xr-x 1 ks   kshome   24 Jul 31 00:34 test.sh
+	#将目录下所有文件及子目录设置为755权限，即rwxr-xr-x
+
+	[root@Ks-CentOS-6 ~]# ll /testu/test.sh
+	-rwxr-xr-x 1 ks kshome 22 Jul 31 00:04 /testu/test.sh
+	#755
+	[root@Ks-CentOS-6 ~]# chmod g+w,o-x /testu/test.sh
+	#给属组增加w权限，给其他用户取消x权限
+	[root@Ks-CentOS-6 ~]# ll /testu/test.sh
+	-rwxrwxr-- 1 ks kshome 23 Jul 31 00:21 /testu/test.sh
+	#774
+
+6.	chown 改变文件的属主或属组（CHange file OWNer and group），仅root用户可以用
+		Usage: chown [OPTION]... [OWNER][:[GROUP]] FILE...
+			其中":"可以用"."替代
+		选项：
+			-R 递归（recursive）
+	[root@Ks-CentOS-6 ~]# chown ks.kshome /testu/test.sh
+	#修改文件权限，将文件属主改为ks，文件属组改为kshome
+
+7.	userdel 删除用户（delete a user account and related files）
+		Usage: userdel [options] LOGIN
+		选项：
+			-r 删除家目录
+
+8.	chattr 更改文件属性（CHange file ATTRibutes on a Linux file system）
+		Usage: chattr [ -RVf ] [ mode ] files...
+		选项：
+			-R 递归（recursive）
+		格式：
+			+ 增加
+			- 取消
+			= 设置
+		属性：
+			i 锁定
+			a 只读
+	建议把/etc/passwd、/etc/shadow、/etc/group、/etc/gshadow、/etc/inittab设置成锁定状态
+	chattr +i /etc/passwd /etc/shadow /etc/group /etc/gshadow /etc/inittab
+	并将chattr改名
+	mv chattr changeattributes
+
+9.	lsattr 显示文件属性（LiSt file ARRTibutes on a Linux second extended file system）
+		Usage: lsattr [ files...  ]
+
+10.	chgrp 修改文件属组（CHange GRouP ownership）
+		Usage: chgrp [OPTION]... GROUP FILE...
+		选项：
+			-R 递归（recursive）
+		[root@Ks-CentOS-6 testu]# chgrp kshome test
+		[root@Ks-CentOS-6 testu]# ll -d test
+		drwxr-xr-x 2 root kshome 4096 Jul 31 01:14 test
+
+
+创建实例：
+	[root@Ks-CentOS-6 test]# groupadd kshome
+	#创建用户组kshome
+	[root@Ks-CentOS-6 test]# useradd ks -g kshome
+	#创建一个用户ks，让其默认在kshome用户组中
+		[root@Ks-CentOS-6 test]# usermod -g kshome ks
+		#如果用户存在，使用该命令将其加入到kshome用户组
+	[root@Ks-CentOS-6 test]# id ks
+	uid=500(ks) gid=500(kshome) groups=500(kshome)
+	#查看用户ks信息
+	[root@Ks-CentOS-6 test]# useradd cc -g kshome
+	[root@Ks-CentOS-6 test]# id cc
+	uid=501(cc) gid=500(kshome) groups=500(kshome)
+	[root@Ks-CentOS-6 test]# useradd testuser
+	#创建testuser，未加入kshome用户组
+	[root@Ks-CentOS-6 test]# id testuser
+	uid=502(testuser) gid=502(testuser) groups=502(testuser)
+
+	[root@Ks-CentOS-6 ~]# mkdir /testu
+	#创建一个目录，用来测试权限相关内容
+	[root@Ks-CentOS-6 ~]# echo "echo test about users" > /testu/test.sh
+	#创建一个测试文件
+
+	[root@Ks-CentOS-6 ~]# mkdir /testu/test/
+	[root@Ks-CentOS-6 ~]# echo "echo test about directories" > /testu/test/tmp.txt
+
+
+测试：
+1.
+	[root@Ks-CentOS-6 ~]# chmod +x /testu/test.sh
+	#给该文件增加可执行权限
+
+	[root@Ks-CentOS-6 ~]# ls -l /testu/test.sh
+	-rwxr-xr-x 1 root root 22 Jul 31 00:04 /testu/test.sh
+	#查看该文件权限
+	#root 默认全部权限，该例子看属主权限，拥有rwx权限，即可读可写可执行
+	#ks、cc、testuser 看其他用户权限，拥有r-x权限，即可读可执行，不可写
+
+2.
+	[root@Ks-CentOS-6 ~]# chown ks.kshome /testu/test.sh
+	#修改文件权限，将文件属主改为ks，文件属组改为kshome
+
+	[root@Ks-CentOS-6 ~]# ll /testu/test.sh
+	-rwxr-xr-x 1 ks kshome 22 Jul 31 00:04 /testu/test.sh
+	#查看该文件权限
+	#root 默认全部权限
+	#ks 看属主权限，拥有rwx权限
+	#cc 看属组权限，拥有r-x权限
+	#testuser 看其他用户权限，拥有r-x权限
+
+3.
+	[root@Ks-CentOS-6 ~]# chmod g+w,o-x /testu/test.sh
+	#给属组增加w权限，给其他用户取消x权限
+
+	[root@Ks-CentOS-6 ~]# ll /testu/test.sh
+	-rwxrwxr-- 1 ks kshome 23 Jul 31 00:21 /testu/test.sh
+	#查看该文件权限
+	#root 默认全部权限
+	#ks 看属主权限，拥有rwx权限
+	#cc 看属组权限，拥有rwx权限
+	#testuser 看其他用户权限，拥有r--权限
+
+4.
+	[root@Ks-CentOS-6 ~]# chmod o=x /testu/test.sh
+	#只给其他用户x权限
+	[root@Ks-CentOS-6 ~]# chmod g-r /testu/test.sh
+	#给属组取消r权限
+	[root@Ks-CentOS-6 ~]# ll /testu/test.sh
+	-rwx-wx--x 1 ks kshome 24 Jul 31 00:34 /testu/test.sh
+	#查看该文件权限
+	#root 默认全部权限
+	#ks 看属主权限，拥有rwx权限
+	#cc 看属组权限，拥有-wx权限
+	#testuser 看其他用户权限，拥有--x权限，虽然其他用户拥有执行权限，但没有读取权限，所以还是不能执行
+
+5.
+	[root@Ks-CentOS-6 ~]# chmod o-x /testu/test/
+	#修改文件夹权限，取消x权限
+	[root@Ks-CentOS-6 ~]# ll /testu/test/
+	total 4
+	-rw-r--r-- 1 root root 28 Jul 31 01:14 tmp.txt
+	#查看文件夹权限
+	#root 默认全部权限，本例中看属主权限，拥有rw-权限
+	#ks、cc、testuser 看其他用户权限，拥有r--权限
+	[testuser@Ks-CentOS-6 ~]$ cd /testu/test
+	-bash: cd: /testu/test: Permission denied
+	#因为没有执行权限，所以不能进入该目录
+	[testuser@Ks-CentOS-6 ~]$ ls /testu/test
+	ls: cannot access /testu/test/tmp.txt: Permission denied
+	tmp.txt
+	#因为没有执行权限，所以只能查看该目录下文件的文件名
+	[testuser@Ks-CentOS-6 ~]$ ll /testu/test
+	ls: cannot access /testu/test/tmp.txt: Permission denied
+	total 0
+	-????????? ? ? ? ?            ? tmp.txt
+	#因为没有执行权限，所以只能查看该目录下文件的文件名，其他内容以?表示
+
+
+实际应用：
+	1、stat命令取出表示权限的数字
+		[root@Ks-CentOS-6 0165]# stat lol
+		  File: `lol'
+		  Size: 0               Blocks: 0          IO Block: 4096   regular empty file
+		Device: 803h/2051d      Inode: 285094      Links: 1
+		Access: (0644/-rw-r--r--)  Uid: (    0/    root)   Gid: (    0/    root)
+		Access: 2018-07-30 09:55:00.059991217 +0800
+		Modify: 2018-07-30 09:55:00.059991217 +0800
+		Change: 2018-07-30 09:55:00.059991217 +0800
+	方法一：
+		[root@Ks-CentOS-6 0165]# stat lol | awk -F "[0/]+" 'NR==4 {print $2}'
+		644
+	方法二：
+		[root@Ks-CentOS-6 0165]# stat lol | sed -n 's#^.*(0\(.*\)/-.*$#\1#gp'
+		644
+	方法三：
+		[root@Ks-CentOS-6 0165]# stat lol | sed -n '4s#^.*(0##gp' | sed 's#/-.*$##g'
+		644
+	方法四：
+		[root@Ks-CentOS-6 0165]# stat lol | sed -n 4p | grep -o "[4-6]" | xargs | sed 's# ##g'
+		644
+	方法五：
+		[root@Ks-CentOS-6 0165]# stat lol | grep -o "[0-9]*" | sed -n 8p | awk -F "" '{print $2$3$4}'
+		644
+	方法六：
+		[root@Ks-CentOS-6 0165]# stat lol | sed -n 4p | cut -b 11-13
+		644
+	方法七（最佳方法）：
+		[root@Ks-CentOS-6 0165]# stat -c %a lol
+		644
+		#通过查看命令man stat，发现直接有参数可以实现
+
+	2、ls取出权限并用数字表示
+		[root@Ks-CentOS-6 0165]# ll lol
+		-rw-r--r-- 1 root root 0 Jul 30 09:55 lol
+	方法：
+		[root@Ks-CentOS-6 0165]# ll lol | cut -c 2-10
+		rw-r--r--
+		[root@Ks-CentOS-6 0165]# ll lol | cut -c 2-10 | tr "rwx-" "4210"
+		420400400
+		[root@Ks-CentOS-6 0165]# ll lol | cut -c 2-10 | tr "rwx-" "4210" | awk -F "" '{print $1+$2+$3""$4+$5+$6""$7+$8+$9}'
+		644

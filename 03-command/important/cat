@@ -1,0 +1,98 @@
+cat 文本输出，包括显示文件、创建文件、合并文件（conCATenate files and print on the standard output）
+tac 倒叙输出文本（concatenate and print files in reverse）
+rev 每行倒叙显示文本（reverse lines of a file or files）
+
+Usage: cat [OPTION]... [FILE]...
+
+常用选项：
+		-n 对输出行编号
+		-b 对输出非空行编号
+		-s 连续空白行替换成一行空白行
+		-E 在每一行结尾处显示$
+		-T 用"^I"显示tab锁进
+
+练习：
+	[root@Ks-CentOS-6 testu]# cat /etc/sysconfig/network-scripts/ifcfg-eth0
+	#查看网卡配置文件
+
+	[root@Ks-CentOS-6 cat]# cat test1.txt
+	this is the text1 in test1
+	this is the text2 in test1
+	[root@Ks-CentOS-6 cat]# cat test2.txt
+	this is the text1 in test2
+	this is the text2 in test2
+	[root@Ks-CentOS-6 cat]# cat test{1,2}.txt
+	this is the text1 in test1
+	this is the text2 in test1
+	this is the text1 in test2
+	this is the text2 in test2
+	#连续输出多个文件
+
+	[root@Ks-CentOS-6 cat]# cat test{1,2}.txt >>testall.txt
+	[root@Ks-CentOS-6 cat]# cat testall.txt
+	this is the text1 in test1
+	this is the text2 in test1
+	this is the text1 in test2
+	this is the text2 in test2
+	[root@Ks-CentOS-6 cat]# cat testall.txt >> testall.txt
+	cat: testall.txt: input file is output file
+	#将文件内容追加到其他文件中
+
+	[root@Ks-CentOS-6 cat]# cat >>testall.txt<<EOF
+	> this is text1 in testall
+	> EOF
+	[root@Ks-CentOS-6 cat]# cat testall.txt
+	this is the text1 in test1
+	this is the text2 in test1
+	this is the text1 in test2
+	this is the text2 in test2
+	this is text1 in testall
+	#手动输入内容追加到文件末尾
+
+	[root@Ks-CentOS-6 cat]# cat -n hilx
+	     1  Welcome to my blog. http://hilx.me
+	     2
+	     3  If you like my blog\'s contents, plz support me.
+	     4
+	     5
+	     6
+	     7  Bye! boys and girls.
+	#-n选项显示行号
+
+	[root@Ks-CentOS-6 cat]# cat -b hilx
+	     1  Welcome to my blog. http://hilx.me
+
+	     2  If you like my blog\'s contents, plz support me.
+
+
+
+	     3  Bye! boys and girls.
+	#-b选项只给非空行加行号
+
+	[root@Ks-CentOS-6 cat]# cat -s hilx
+	Welcome to my blog. http://hilx.me
+
+	If you like my blog\'s contents, plz support me.
+
+	Bye! boys and girls.
+	#-s选项将连续空白行替换成一行空白行
+
+	[root@Ks-CentOS-6 cat]# tac hilx
+	Bye! boys and girls.
+
+
+
+	If you like my blog\'s contents, plz support me.
+
+	Welcome to my blog. http://hilx.me
+	#tac倒叙输出该文本
+
+	[root@Ks-CentOS-6 cat]# rev hilx
+	em.xlih//:ptth .golb ym ot emocleW
+
+	.em troppus zlp ,stnetnoc s'\golb ym ekil uoy fI
+
+
+
+	.slrig dna syob !eyB
+	#rev命令将每一行文本倒叙显示

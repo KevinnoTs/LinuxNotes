@@ -1,0 +1,132 @@
+用户、用户组：
+
+Linux是多用户多任务的操作系统
+
+每个文件和进程，都需要对应一个用户和用户组
+
+Linux系统是通过UID和GID来识别用户和用户组的
+	用户名相当于人命，可以更改
+	UID相当于身份证号，一旦创建不允许更改
+	管理员默认为root
+
+用户和组可以是一对一、一对多、多雨多、多对一
+
+用户分类：
+	超级用户，UID=0，root
+	普通用户，UID是500-65535，是由超级用户或具有超级用户权限的用户创建的
+	虚拟用户，UID是1-499，为了满足文件或服务启动需要（每个文件和进程，都需要对应一个用户和用户组），一般不能登录，是傀儡
+
+重要文件：
+	/etc/passwd
+	/etc/shadow
+	/etc/group
+	/etc/gshadow
+	以上文件由冒号":"分隔
+
+	/etc/skel 该目录用来存放新用户配置文件的目录
+		当创建文件时，相当于有一步是：cp -a /etc/skel/* /home/username，即把这里的配置文件复制到用户家目录下
+		在该目录下创建的文件，在新建用户时，也会复制到该用户的家目录下
+		作用：
+			1. 可以把通知或说明放在skel中，让后续添加的用户自己看
+			2. 可以统一初始化新用户的环境变量，如在/etc/skel/.bash_profile中加入别名alias grep='grep --color==auto'，之后创建的用户就会自带该别名
+			3. -bash-4.1$ 问题，因为用户家目录下配置文件丢失
+
+	/etc/login.defs 该文件用来定义创建用户时需要的一些用户的配置信息，如是否需要家目录，UID和GID范围，用户及密码有效期等
+
+	/etc/default/useradd 在使用useradd添加用户时需要调用的默认配置文件
+
+
+相关变量：
+	PS1 命令行的开头，默认PS1=[\u@\h \W]\$，即[root@Ks-CentOS-6 ~]# 或 [ks@Ks-CentOS-6 ~]$
+
+相关命令：
+1.	useradd 添加用户（create a new user or update default new user information）
+	Usage: useradd [options] LOGIN
+	选项：
+		-c 注释
+		-d 家目录
+		-e 终止日期
+		-g 指定属于的主组，使用该命令不创建用户名为组名的用户组
+		-G 指定多组，用","隔开
+		-M 创建时不建家目录
+		-s 指定shell
+		-u 指定uid
+	[root@Ks-CentOS-6 test]# useradd ks -g kshome
+	#创建一个用户ks，让其默认在kshome用户组中
+
+	[root@Ks-CentOS-6 ~]# useradd -c "TestUserAdd" -u 806 -G root,sa -s /bin/sh -md /testuser testuseradd
+	[root@Ks-CentOS-6 ~]# tail -1 /etc/passwd
+	testuseradd:x:806:806:TestUserAdd:/testuser:/bin/sh
+	#创建用户testuseradd，使其注释为TestUserAdd，uid为806，所属用户组为root和sa，指定登录shell为/bin/sh，家目录为/testuser
+
+	[root@Ks-CentOS-6 ~]# useradd -g kshome -M -e "2028/01/01" lian
+	#创建用户lian，并不创建用户组lian，让该用户属于kshome，不设置家目录，让其2028年1月1日过期
+
+2.	userdel 删除用户（delete a user account and related files）
+	Usage: userdel [options] LOGIN
+
+3.	passwd 设置或改密码（update user’s authentication tokens）
+	Usage: passwd [options] [username]
+	选项：
+		--stdin 非交互式修改密码
+	[root@Ks-CentOS-6 ~]# passwd ks
+	Changing password for user ks.
+	New password:
+	Retype new password:
+	passwd: all authentication tokens updated successfully.
+	#root用户给ks创建密码
+
+	[ks@Ks-CentOS-6 ~]$ passwd
+	Changing password for user ks.
+	Changing password for ks.
+	(current) UNIX password:
+	New password:
+	Retype new password:
+	passwd: all authentication tokens updated successfully.
+	#ks用户给自己改密码
+
+	[root@Ks-CentOS-6 ~]# echo "qwert123" | passwd --stdin ks
+	Changing password for user ks.
+	passwd: all authentication tokens updated successfully.
+	#通过命令非交互式修改密码（非交互式，只可以root操作）
+
+4.	usermod 修改用户信息（modify a user account）
+	Usage: usermod [options] LOGIN
+
+5.	id 显示用户信息（print real and effective user and group IDs）
+	Usage: id [OPTION]... [USERNAME]
+
+6.	chage 修改密码属性（change user password expiry information）
+	Usage: chage [options] LOGIN
+
+9.	su 角色切换（run a shell with substitute user and group IDs）
+	Usage: su [OPTION]... [-] [USER [ARG]...]
+
+10.	whoami 查看当前用户
+
+11.	w 查看当前登录用户（Show who is logged on and what they are doing）
+	Usage: w - [husfiV] [user]
+
+11.	sudo 提权
+
+12.	visudo 编辑sudo配置文件
+
+7.	groupadd 添加用户组（create a new group）
+	Usage: groupadd [options] group
+	选项：
+		-g 指定组id
+	[root@Ks-CentOS-6 ~]# groupadd sa
+	#创建用户组sa
+
+8.	groupdel 删除用户组（delete a group）
+	Usage: groupdel [options] GROUP
+	[root@Ks-CentOS-6 ~]# groupdel s
+	#删除用户组s
+
+groupmod
+
+group
+
+例子：
+
+

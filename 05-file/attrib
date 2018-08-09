@@ -25,6 +25,7 @@ total 16K
 
 	2.	block 存储空间
 		一般block分为1k、2k、4k三种单位大小，一个block只能被一个文件使用（每个文件最少占用1block），block越多磁盘IO越多。如果小文件太多，设置block过大，会浪费block空间，也就是说浪费磁盘空间；如果文件太大，block设置太小，影响磁盘访问效率。一般设置为4k（CentOS 6及以前版本）
+
 第二列：文件类型及权限（共11个字符，第一个为类型，后面九个为文件权限，最后一个如果有为.，SELinux相关的标识）
 	文件类型：Linux中一切皆文件，类型包括普通文件（regular file:-）、目录（directory:d）、符号链接文件（link:l）、块设备文件（block:b）、字符设备文件（character:c）、管道文件（named pipe:p）、Socket文件（socket:s）等，前4个是常用文件类型，后3个只需要知道有就可以
 		普通文件按照内容又分为三种：
@@ -47,56 +48,6 @@ total 16K
 			5 .html、.htm、.php、.jsp、.do 表示网页语言
 			6 .conf 表示配置文件
 			7 .rpm 表示rpm安装包
-	文件权限：每三个字符一组分别代表：属主（所属用户）权限位、属组（所属用户组）权限、其他人权限，第一个字符r为可读read、第二个字符w为可写write、第三个字符x为可执行execute
-		r read 		读 		4
-		w write		写 		2
-		x execute 	执行 	1
-		- -			没有		0
-		属主权限位	该文件的主人
-		属组权限位	当有用户加入到该组，即拥有该权限，该组为文件归属的组，不一定是文件属主所在的组
-		其他权限位	即不是属主也不是属组内用户的其他用户
-	练习：
-		1、stat命令取出表示权限的数字
-			[root@Ks-CentOS-6 0165]# stat lol
-			  File: `lol'
-			  Size: 0               Blocks: 0          IO Block: 4096   regular empty file
-			Device: 803h/2051d      Inode: 285094      Links: 1
-			Access: (0644/-rw-r--r--)  Uid: (    0/    root)   Gid: (    0/    root)
-			Access: 2018-07-30 09:55:00.059991217 +0800
-			Modify: 2018-07-30 09:55:00.059991217 +0800
-			Change: 2018-07-30 09:55:00.059991217 +0800
-		方法一：
-			[root@Ks-CentOS-6 0165]# stat lol | awk -F "[0/]+" 'NR==4 {print $2}'
-			644
-		方法二：
-			[root@Ks-CentOS-6 0165]# stat lol | sed -n 's#^.*(0\(.*\)/-.*$#\1#gp'
-			644
-		方法三：
-			[root@Ks-CentOS-6 0165]# stat lol | sed -n '4s#^.*(0##gp' | sed 's#/-.*$##g'
-			644
-		方法四：
-			[root@Ks-CentOS-6 0165]# stat lol | sed -n 4p | grep -o "[4-6]" | xargs | sed 's# ##g'
-			644
-		方法五：
-			[root@Ks-CentOS-6 0165]# stat lol | grep -o "[0-9]*" | sed -n 8p | awk -F "" '{print $2$3$4}'
-			644
-		方法六：
-			[root@Ks-CentOS-6 0165]# stat lol | sed -n 4p | cut -b 11-13
-			644
-		方法七（最佳方法）：
-			[root@Ks-CentOS-6 0165]# stat -c %a lol
-			644
-			#通过查看命令man stat，发现直接有参数可以实现
-		2、ls取出权限并用数字表示
-			[root@Ks-CentOS-6 0165]# ll lol
-			-rw-r--r-- 1 root root 0 Jul 30 09:55 lol
-		方法：
-			[root@Ks-CentOS-6 0165]# ll lol | cut -c 2-10
-			rw-r--r--
-			[root@Ks-CentOS-6 0165]# ll lol | cut -c 2-10 | tr "rwx-" "4210"
-			420400400
-			[root@Ks-CentOS-6 0165]# ll lol | cut -c 2-10 | tr "rwx-" "4210" | awk -F "" '{print $1+$2+$3""$4+$5+$6""$7+$8+$9}'
-			644
 
 第三列：为硬链接的数量（硬链接：同一个文件的不同访问入口）
 	链接：一种为硬链接（Hard Link），一种为软链接或符号链接（Symbolic Link or Soft Link）
