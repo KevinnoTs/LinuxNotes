@@ -4,9 +4,125 @@ https://www.tuicool.com/articles/YFVbia
 http://blog.sina.com.cn/s/blog_48eef8410101fl4p.html
 
 
+
 命令passwd报错因inode节点处理记录
 http://blog.sina.com.cn/s/blog_506ed9e6010106kj.html
 
 
+
 使用shell命令批量创建10个用户，用户名为stu01-stu10，要求不使用循环
+解答：
+[root@Ks-CentOS-6 ~]# echo stu{01..10} | tr ' ' '\n' | sed -e 's/^/useradd /' -e 's/\(stu[0-9]\{2\}\)$/\1 \&\& echo "\1:`echo $[$RANDOM**3] | cut -c1-8`" | tee -a userInfo.txt | cut -d: -f2 | passwd --stdin \1/' | bash
+#首先打印输出stu01...stu10 |
+#替换空格为回车 |
+#sed命令替换，将开头加入"useradd "，结尾加上 &&
+#echo "stu01...stu10:"开头，后面接一串随机数字并取随机数字前8位 |
+#将前面输出的内容储存到userInfo.txt中
+#将储存内容":"前面的内容去掉，之后第2部分，后面加上" passwd --stdin stu01...stu10/'"
+#最后传给bash命令执行
+Changing password for user stu01.
+passwd: all authentication tokens updated successfully.
+Changing password for user stu02.
+passwd: all authentication tokens updated successfully.
+Changing password for user stu03.
+passwd: all authentication tokens updated successfully.
+Changing password for user stu04.
+passwd: all authentication tokens updated successfully.
+Changing password for user stu05.
+passwd: all authentication tokens updated successfully.
+Changing password for user stu06.
+passwd: all authentication tokens updated successfully.
+Changing password for user stu07.
+passwd: all authentication tokens updated successfully.
+Changing password for user stu08.
+passwd: all authentication tokens updated successfully.
+Changing password for user stu09.
+passwd: all authentication tokens updated successfully.
+Changing password for user stu10.
+passwd: all authentication tokens updated successfully.
+#反馈信息
+[root@Ks-CentOS-6 ~]# tail /etc/passwd
+stu01:x:808:808::/home/stu01:/bin/bash
+stu02:x:809:809::/home/stu02:/bin/bash
+stu03:x:810:810::/home/stu03:/bin/bash
+stu04:x:811:811::/home/stu04:/bin/bash
+stu05:x:812:812::/home/stu05:/bin/bash
+stu06:x:813:813::/home/stu06:/bin/bash
+stu07:x:814:814::/home/stu07:/bin/bash
+stu08:x:815:815::/home/stu08:/bin/bash
+stu09:x:816:816::/home/stu09:/bin/bash
+stu10:x:817:817::/home/stu10:/bin/bash
+#查看/etc/passwd文件
+[root@Ks-CentOS-6 ~]# cat userInfo.txt
+stu01:14959673
+stu02:24944294
+stu03:33060707
+stu04:14725942
+stu05:37418189
+stu06:12033428
+stu07:16960726
+stu08:15169109
+stu09:11183868
+stu10:25362947
+#查看保存文件密码的文件userInfo.txt
+
+
+
+企业生产环境用户权限集中管理项目方案
+1. 了解流程后，提出权限整改解决方案，改进滥用root现状
+2. 撰写方案并展开讨论，最终实施整改方案
+3. 实施后权限管理更加清晰，并制定了账号权限申请流程及权限申请表格
+
+
+
+root密码丢失找回
+方法一：
+	光盘启动，选择 Rescue Installed system
+	Choose a Language: English
+	Keyboard Type: us
+	Setup Networking: No
+	Rescue: Continue...OK...OK
+	Start shell
+
+	bash-4.1# head -1 /mnt/sysimage/etc/passwd
+	root:x:0:0:root:/root:/bin/bash
+	#查看/etc/passwd文件，因为系统被挂在到了/mnt/sysimage/，输入全路径查看
+	#删除root行的第二列，即"x"，即可删除密码，保存退出
+	bash-4.1# head -1 /mnt/sysimage/etc/passwd
+	root::0:0:root:/root:/bin/bash
+	#再次查看，第二列为空，即删除了密码，设置成功
+	bash-4.1# halt
+	#关机
+	出现halting system后，即可物理关机，再开机
+
+	无密码可登录root，然后输入passwd root，为root设置密码
+
+方法二：
+	按方法一进入Rescue Installed system
+	bash-4.1# chroot /mnt/sysimage
+	#以root身份登录系统
+	sh-4.1# passwd root
+	#为root创建新密码
+	#注：该模式不能使用命令关机
+
+方法三：
+	重启计算机，当出现 Press any key to enter the menu 时，输入任意键，进入菜单
+	输入e，进入编辑模式
+	选择：kernel ...
+	选中后按e，编辑
+	在后面加" /init 1"，修改为单用户模式
+	即<TYPE=pc KEYTABLE=us rd_NO_DM rhgb quite /init 1
+	按回车确认
+	确认修改后按b重启
+	进系统同方法一，删除root行第二列，即x，删除root密码
+	重启即可无密码登录root
+
+
+
+买了4块2T的SATA硬盘，并做了RAID5，现在需要把该RAID5分区分成2个分区，一个存放IDC机房取回来的备份，大小2T，另一个分区存放办公内部数据备份，给出分区过程
+
+6块600G磁盘，RAID5总大小3T，无法装系统，为什么？
+做好RAID5后，不重启，在RAID界面划分一个200G分区，用200G分区安装系统，剩余2.8G进系统再用parted进行分区
+也可以1块硬盘做RAID0，剩余5块做RAID5，在RAID0下安装系统
+还可以装系统时选择gpt分区格式
 

@@ -1,0 +1,358 @@
+磁盘设备相关：
+
+buffers	为写入缓冲区
+cache 	为读取缓存区
+
+磁盘大小=512字节*扇区数*磁道数*磁头数
+	512字节=扇区大小
+	扇区数=sectors
+	磁道数=tracks
+	磁头数=heads
+	柱面数=cylinders
+
+机械磁盘读写原理
+1. 磁盘时按照柱面为单位读写数据的
+2. 不同的磁头间的切换时电子切换
+
+硬盘分区：
+0磁头0磁道1扇区（扇区单位为512字节）：自动创建且必须存在
+	446 bytes 	主引导记录，MBR（Mastar Boot Record）所在地
+	64  bytes	存放分区表信息，记录每个分区需要16个字节，所以只支持4个分区，即主分区加扩展分区最多只有4个
+				主分区最少1个，最多4个，扩展分区只能有1个
+				如需要分大于4个分区的话，需要建立扩展分区，扩展分区下可以创建多个逻辑分区，因为扩展分区有单独的分区表
+				分区编号1-4主分区和逻辑分区专用，逻辑分区只能从5开始
+				每个分区信息的16bytes又包括
+					1 bytes 分区状态（State）
+					1 bytes 分区起始磁头号（StartHead）
+					2 bytes 分区起始扇区和柱面号（StartS）
+					1 bytes 分区类型（Type）
+					1 bytes 分区结束磁头号（EndHead）
+					2 bytes 分区结束扇区和柱面号（EndSC）
+					4 bytes 线性寻址方式下分区对应扇区地址（Relative），对于基本分区为绝对地址
+					4 bytes 分区大小（Sectors），即总扇区数
+				fdisk，parted 分区工具进行分区实质就是改变上述分区表信息，不破坏数据
+	2   bytes	分区结束标识，55AA
+主分区（primary）：
+	主分区1: /dev/sda1
+		引导分区信息
+		数据
+	主分区2:/dev/sda2
+	......
+扩展分区（extended）：扩展分区不能直接存储数据
+	逻辑分区（logical）1：
+		扩展分区表
+		55AA
+		引导分区信息
+		数据
+	逻辑分区2:
+	......
+
+
+##################################################
+
+
+磁盘相关命令：
+
+1.	查看磁头0磁道1扇区的信息
+[root@Ks-CentOS-6 ~]# dd if=/dev/sda of=mbr.bin bs=512 count=1
+1+0 records in
+1+0 records out
+512 bytes (512 B) copied, 0.000207569 s, 2.5 MB/s
+#将0磁头0磁道1扇区信息备份到当前目录下，命名为mbr.bin
+[root@Ks-CentOS-6 ~]# od -xa mbr.bin
+#od命令读取mbr.bin文件的二进制信息，即读取0磁头0磁道1扇区的信息
+
+
+2.	fdisk 磁盘分区工具（Partition table manipulator for Linux）（小于2T的磁盘，大于2T磁盘使用parted）
+[root@Ks-CentOS-6 ~]# fdisk -l
+#查看磁盘信息
+
+Disk /dev/sda: 10.7 GB, 10737418240 bytes
+255 heads, 63 sectors/track, 1305 cylinders
+Units = cylinders of 16065 * 512 = 8225280 bytes
+Sector size (logical/physical): 512 bytes / 512 bytes
+I/O size (minimum/optimal): 512 bytes / 512 bytes
+Disk identifier: 0x00055c8b
+
+   Device Boot      Start         End      Blocks   Id  System
+/dev/sda1   *           1          26      204800   83  Linux
+Partition 1 does not end on cylinder boundary.
+/dev/sda2              26         217     1536000   82  Linux swap / Solaris
+Partition 2 does not end on cylinder boundary.
+/dev/sda3             217        1306     8743936   83  Linux
+
+Disk /dev/sdb: 106 MB, 106954752 bytes
+64 heads, 32 sectors/track, 102 cylinders
+Units = cylinders of 2048 * 512 = 1048576 bytes
+Sector size (logical/physical): 512 bytes / 512 bytes
+I/O size (minimum/optimal): 512 bytes / 512 bytes
+Disk identifier: 0x00000000
+
+[root@Ks-CentOS-6 ~]# fdisk -cu /dev/sdb
+#给硬盘分区，-c为关闭dos兼容模式，-u为使用扇区为单位（默认是柱面）
+
+......
+#提示内容略
+
+Command (m for help): m
+#输入m为查看帮助
+Command action
+   a   toggle a bootable flag
+   b   edit bsd disklabel
+   c   toggle the dos compatibility flag
+   d   delete a partition
+   l   list known partition types
+   m   print this menu
+   n   add a new partition
+   o   create a new empty DOS partition table
+   p   print the partition table
+   q   quit without saving changes
+   s   create a new empty Sun disklabel
+   t   change a partition's system id
+   u   change display/entry units
+   v   verify the partition table
+   w   write table to disk and exit
+   x   extra functionality (experts only)
+# d 为删除分区
+# l 为查看分区格式
+# m 为查看帮助
+# n 为新建分区
+# p 为查看当前分区
+# q 为不保存退出
+# t 修改默认分区格式（格式列表可以按l查看）
+# w 保存退出
+
+Command (m for help): n
+#选择n为新建分区
+Command action
+   e   extended
+   p   primary partition (1-4)
+p
+#输入p选择新建主分区
+Partition number (1-4): 1
+#输入主分区编号
+First sector (2048-208895, default 2048):
+#默认直接输入回车
+Using default value 2048
+Last sector, +sectors or +size{K,M,G} (2048-208895, default 208895): +10M
+#+10M即给该分区分10M
+
+Command (m for help): p
+#输入p查看已有分区
+
+Disk /dev/sdb: 106 MB, 106954752 bytes
+64 heads, 32 sectors/track, 102 cylinders, total 208896 sectors
+Units = sectors of 1 * 512 = 512 bytes
+Sector size (logical/physical): 512 bytes / 512 bytes
+I/O size (minimum/optimal): 512 bytes / 512 bytes
+Disk identifier: 0x3c68c297
+
+   Device Boot      Start         End      Blocks   Id  System
+/dev/sdb1            2048       22527       10240   83  Linux
+
+......
+#同理创建3个主分区
+
+Command (m for help): n
+Command action
+   e   extended
+   p   primary partition (1-4)
+p
+Selected partition 4
+#因为只可以创建4个分区，所以当选择再次创建主分区时，不需要选择分区编号
+First sector (63488-208895, default 63488):
+Using default value 63488
+Last sector, +sectors or +size{K,M,G} (63488-208895, default 208895): +10M
+
+Command (m for help): p
+
+Disk /dev/sdb: 106 MB, 106954752 bytes
+64 heads, 32 sectors/track, 102 cylinders, total 208896 sectors
+Units = sectors of 1 * 512 = 512 bytes
+Sector size (logical/physical): 512 bytes / 512 bytes
+I/O size (minimum/optimal): 512 bytes / 512 bytes
+Disk identifier: 0x3c68c297
+
+   Device Boot      Start         End      Blocks   Id  System
+/dev/sdb1            2048       22527       10240   83  Linux
+/dev/sdb2           22528       43007       10240   83  Linux
+/dev/sdb3           43008       63487       10240   83  Linux
+/dev/sdb4           63488       83967       10240   83  Linux
+#已有分区4个，全部为主分区
+
+Command (m for help): n
+You must delete some partition and add an extended partition first
+#当再次想要创建分区时，提示需要删除一个主分区再创建逻辑分区
+
+Command (m for help): d
+#输入d删除分区
+Partition number (1-4): 4
+#选择删除分区编号
+
+Command (m for help): p
+
+Disk /dev/sdb: 106 MB, 106954752 bytes
+64 heads, 32 sectors/track, 102 cylinders, total 208896 sectors
+Units = sectors of 1 * 512 = 512 bytes
+Sector size (logical/physical): 512 bytes / 512 bytes
+I/O size (minimum/optimal): 512 bytes / 512 bytes
+Disk identifier: 0x3c68c297
+
+   Device Boot      Start         End      Blocks   Id  System
+/dev/sdb1            2048       22527       10240   83  Linux
+/dev/sdb2           22528       43007       10240   83  Linux
+/dev/sdb3           43008       63487       10240   83  Linux
+#查看分区，已有3个主分区
+
+Command (m for help): n
+#新建分区
+Command action
+   e   extended
+   p   primary partition (1-4)
+e
+#输入e选择逻辑分区
+Selected partition 4
+First sector (63488-208895, default 63488):
+#回车默认起始扇区
+Using default value 63488
+Last sector, +sectors or +size{K,M,G} (63488-208895, default 208895):
+#输入回车为剩余所有大小
+Using default value 208895
+
+Command (m for help): p
+
+Disk /dev/sdb: 106 MB, 106954752 bytes
+64 heads, 32 sectors/track, 102 cylinders, total 208896 sectors
+Units = sectors of 1 * 512 = 512 bytes
+Sector size (logical/physical): 512 bytes / 512 bytes
+I/O size (minimum/optimal): 512 bytes / 512 bytes
+Disk identifier: 0x3c68c297
+
+   Device Boot      Start         End      Blocks   Id  System
+/dev/sdb1            2048       22527       10240   83  Linux
+/dev/sdb2           22528       43007       10240   83  Linux
+/dev/sdb3           43008       63487       10240   83  Linux
+/dev/sdb4           63488      208895       72704    5  Extended
+#查看分区，目前3主分区1逻辑分区，无扩展分区
+
+Command (m for help): n
+#输入n创建分区，因为分区数已满，所以创建的默认为扩展分区，不需要选择
+First sector (65536-208895, default 65536):
+Using default value 65536
+Last sector, +sectors or +size{K,M,G} (65536-208895, default 208895): +10M
+
+Command (m for help): p
+
+Disk /dev/sdb: 106 MB, 106954752 bytes
+64 heads, 32 sectors/track, 102 cylinders, total 208896 sectors
+Units = sectors of 1 * 512 = 512 bytes
+Sector size (logical/physical): 512 bytes / 512 bytes
+I/O size (minimum/optimal): 512 bytes / 512 bytes
+Disk identifier: 0x16794258
+
+   Device Boot      Start         End      Blocks   Id  System
+/dev/sdb1            2048       22527       10240   83  Linux
+/dev/sdb2           22528       43007       10240   83  Linux
+/dev/sdb3           43008       63487       10240   83  Linux
+/dev/sdb4           63488      208895       72704    5  Extended
+/dev/sdb5           65536       86015       10240   83  Linux
+#查看分区，目前3主，1逻辑，1扩展
+
+......
+#同理创建第二个扩展分区
+
+Command (m for help): n
+First sector (110592-208895, default 110592):
+Using default value 110592
+Last sector, +sectors or +size{K,M,G} (110592-208895, default 208895):
+#直接回车，将剩余空间全部给该分区
+Using default value 208895
+
+Command (m for help): p
+
+Disk /dev/sdb: 106 MB, 106954752 bytes
+64 heads, 32 sectors/track, 102 cylinders, total 208896 sectors
+Units = sectors of 1 * 512 = 512 bytes
+Sector size (logical/physical): 512 bytes / 512 bytes
+I/O size (minimum/optimal): 512 bytes / 512 bytes
+Disk identifier: 0x16794258
+
+   Device Boot      Start         End      Blocks   Id  System
+/dev/sdb1            2048       22527       10240   83  Linux
+/dev/sdb2           22528       43007       10240   83  Linux
+/dev/sdb3           43008       63487       10240   83  Linux
+/dev/sdb4           63488      208895       72704    5  Extended
+/dev/sdb5           65536       86015       10240   83  Linux
+/dev/sdb6           88064      108543       10240   83  Linux
+/dev/sdb7          110592      208895       49152   83  Linux
+#查看分区信息，目前为3主，1逻辑，逻辑下面包括3扩展分区
+
+Command (m for help): w
+#写入分区表保存分区并退出
+The partition table has been altered!
+
+Calling ioctl() to re-read partition table.
+Syncing disks.
+[root@Ks-CentOS-6 ~]# fdisk -l
+#查看磁盘信息
+
+......
+#第一块磁盘内容略
+
+Disk /dev/sdb: 106 MB, 106954752 bytes
+64 heads, 32 sectors/track, 102 cylinders
+Units = cylinders of 2048 * 512 = 1048576 bytes
+Sector size (logical/physical): 512 bytes / 512 bytes
+I/O size (minimum/optimal): 512 bytes / 512 bytes
+Disk identifier: 0x16794258
+
+   Device Boot      Start         End      Blocks   Id  System
+/dev/sdb1               2          11       10240   83  Linux
+/dev/sdb2              12          21       10240   83  Linux
+/dev/sdb3              22          31       10240   83  Linux
+/dev/sdb4              32         102       72704    5  Extended
+/dev/sdb5              33          42       10240   83  Linux
+/dev/sdb6              44          53       10240   83  Linux
+/dev/sdb7              55         102       49152   83  Linux
+
+[root@Ks-CentOS-6 ~]# ll /dev/sd*
+brw-rw---- 1 root disk 8,  0 Aug 14 08:23 /dev/sda
+brw-rw---- 1 root disk 8,  1 Aug 14 08:23 /dev/sda1
+brw-rw---- 1 root disk 8,  2 Aug 14 08:23 /dev/sda2
+brw-rw---- 1 root disk 8,  3 Aug 14 08:23 /dev/sda3
+brw-rw---- 1 root disk 8, 16 Aug 14 08:54 /dev/sdb
+brw-rw---- 1 root disk 8, 17 Aug 14 08:54 /dev/sdb1
+brw-rw---- 1 root disk 8, 18 Aug 14 08:54 /dev/sdb2
+brw-rw---- 1 root disk 8, 19 Aug 14 08:54 /dev/sdb3
+brw-rw---- 1 root disk 8, 20 Aug 14 08:54 /dev/sdb4
+brw-rw---- 1 root disk 8, 21 Aug 14 08:54 /dev/sdb5
+brw-rw---- 1 root disk 8, 22 Aug 14 08:54 /dev/sdb6
+brw-rw---- 1 root disk 8, 23 Aug 14 08:54 /dev/sdb7
+#查看分区表
+
+[root@Ks-CentOS-6 ~]# partprobe /dev/sdb
+#partprobe命令用于通知系统已改变分区表信息，系统会自动更新分区表信息（inform the OS of partition table changes）
+#！！分区结束后必须使用该命令通知系统更新分区表信息！！
+
+
+3.	sync 强制将buffers写入磁盘（flush file system buffers）
+	为避免重启或关机丢数据，最好在重启或关机前将buffers写入磁盘
+
+
+##################################################
+
+
+Linux开机启动过程
+	1、	开机BIOS自检
+	2、	MBR引导
+		硬盘0柱面0磁道1扇区的前446byte（共512byte，即字节,446b引导+64b分区表负责4个主分区+2b分区结束标志）
+	3、	grub引导菜单
+		cat /etc/grub.conf
+	4、	加载内核kernel
+	5、	启动进程init（Linux启动的第一个进程，进程号为1）
+	6、	init进程读取intitab文件（运行级别），执行rc.sysinit, rc等脚本
+		/etc/inittab			运行级别
+		/etc/rc.d/rc.sysinit	初始化系统
+		/etc/rc.d/rc3.d/		根据运行级别运行该级别下的脚本
+			该目录下链接文件名字开头S为Start运行，K为Kill关闭，后面为脚本文件所在地址
+	7、	启动mingetty，进入登录界面

@@ -1,5 +1,14 @@
 环境搭建：
 
+Linux系统安全最小化原则：
+	安装系统最小化，选包最小化，安装软件（yum）最小化
+	开机启动最小化
+	操作命令最小化，如：能用rm -f就不用rm -fr
+	登录用户最小化，能用普通用户就不用root
+	用户授权最小化，只给用户必须的命令
+	文件权限最小化，尽量不要随意创建、更改、删除文件
+
+
 1. 	硬盘分区选择标准分区，分区格式选择xfs（CentOS 7默认）或ext4（CentOS 6默认）
 
 
@@ -239,3 +248,50 @@
 
 
 14.	基本设置已完成，如果是虚拟机或vps建议制作快照，并克隆为母版机以备以后使用
+
+15. root密码丢失找回
+	方法一：
+		光盘启动，选择 Rescue Installed system
+		Choose a Language: English
+		Keyboard Type: us
+		Setup Networking: No
+		Rescue: Continue...OK...OK
+		Start shell
+
+		bash-4.1# head -1 /mnt/sysimage/etc/passwd
+		root:x:0:0:root:/root:/bin/bash
+		#查看/etc/passwd文件，因为系统被挂在到了/mnt/sysimage/，输入全路径查看
+		#删除root行的第二列，即"x"，即可删除密码，保存退出
+		bash-4.1# head -1 /mnt/sysimage/etc/passwd
+		root::0:0:root:/root:/bin/bash
+		#再次查看，第二列为空，即删除了密码，设置成功
+		bash-4.1# halt
+		#关机
+		出现halting system后，即可物理关机，再开机
+
+		无密码可登录root，然后输入passwd root，为root设置密码
+
+	方法二：
+		按方法一进入Rescue Installed system
+		bash-4.1# chroot /mnt/sysimage
+		#以root身份登录系统
+		sh-4.1# passwd root
+		#为root创建新密码
+		#注：该模式不能使用命令关机
+
+	方法三：
+		重启计算机，当出现 Press any key to enter the menu 时，输入任意键，进入菜单
+		输入e，进入编辑模式
+		选择：kernel ...
+		选中后按e，编辑
+		在后面加" /init 1"，修改为单用户模式
+		即<TYPE=pc KEYTABLE=us rd_NO_DM rhgb quite /init 1
+		按回车确认
+		确认修改后按b重启
+		进系统同方法一，删除root行第二列，即x，删除root密码
+		重启即可无密码登录root
+
+
+
+
+

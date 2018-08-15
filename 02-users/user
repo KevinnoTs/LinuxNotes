@@ -35,11 +35,19 @@ Linux系统是通过UID和GID来识别用户和用户组的
 
 	/etc/default/useradd 在使用useradd添加用户时需要调用的默认配置文件
 
+一些技巧：
+	删除用户：
+		1. 编辑/etc/passwd文件，将想要删除的用户注释掉
+		2. 将该用户的shell改成/sbin/nologin
+		3. openldap（活动目录）账号统一管理，ldap库里删除用户，所有服务器全都没了
+		4. 谨慎修改和删除
+
 
 相关变量：
 	PS1 命令行的开头，默认PS1=[\u@\h \W]\$，即[root@Ks-CentOS-6 ~]# 或 [ks@Ks-CentOS-6 ~]$
 
 相关命令：
+添加：
 1.	useradd 添加用户（create a new user or update default new user information）
 	Usage: useradd [options] LOGIN
 	选项：
@@ -62,19 +70,43 @@ Linux系统是通过UID和GID来识别用户和用户组的
 	[root@Ks-CentOS-6 ~]# useradd -g kshome -M -e "2028/01/01" lian
 	#创建用户lian，并不创建用户组lian，让该用户属于kshome，不设置家目录，让其2028年1月1日过期
 
-2.	userdel 删除用户（delete a user account and related files）
-	Usage: userdel [options] LOGIN
 
-3.	passwd 设置或改密码（update user’s authentication tokens）
+2.	passwd 设置或改密码（update user’s authentication tokens）
 	Usage: passwd [options] [username]
 	选项：
+		-n 几天内不能修改密码（min）
+		-x 原密码过期，即几天内必须修改密码（max）
+		-w 密码还差几天过期时提示该用户修改密码（warning）
+		-i 密码过期后多少天后禁用用户登录（inactive）
 		--stdin 非交互式修改密码
+	注意：
+		1.	passwd命令，即/usr/bin/passwd文件，拥有特殊权限，即其他用户执行时拥有该用户属主的权限
+			[root@Ks-CentOS-6 ~]# ll `which passwd`
+			-rwsr-xr-x. 1 root root 30768 Nov 24  2015 /usr/bin/passwd
+		2.	生产环境，用户及密码管理
+				密码要尽量复杂
+				大企业用户和密码统一管理，openldap活动目录账户集中管理
+					一堆服务器，登录时先登录认证服务器，认证服务器去连该服务器认证，认证后登录
+				动态口令
 	[root@Ks-CentOS-6 ~]# passwd ks
 	Changing password for user ks.
 	New password:
 	Retype new password:
 	passwd: all authentication tokens updated successfully.
 	#root用户给ks创建密码
+
+	[root@Ks-CentOS-6 ~]# passwd -n 3 -x 90 -w 15 -i 30 cc
+	Adjusting aging data for user cc.
+	passwd: Success
+	[root@Ks-CentOS-6 ~]# chage -l cc
+	Last password change                                    : Jul 30, 2018
+	Password expires                                        : Oct 28, 2018
+	Password inactive                                       : Nov 27, 2018
+	Account expires                                         : never
+	Minimum number of days between password change          : 3
+	Maximum number of days between password change          : 90
+	Number of days of warning before password expires       : 15
+	#设置用户cc，3天内不能修改密码，90天内原密码到期，到期15天前提醒该用户修改密码，到期30天后不能登录
 
 	[ks@Ks-CentOS-6 ~]$ passwd
 	Changing password for user ks.
@@ -90,38 +122,249 @@ Linux系统是通过UID和GID来识别用户和用户组的
 	passwd: all authentication tokens updated successfully.
 	#通过命令非交互式修改密码（非交互式，只可以root操作）
 
-4.	usermod 修改用户信息（modify a user account）
-	Usage: usermod [options] LOGIN
 
-5.	id 显示用户信息（print real and effective user and group IDs）
-	Usage: id [OPTION]... [USERNAME]
-
-6.	chage 修改密码属性（change user password expiry information）
-	Usage: chage [options] LOGIN
-
-9.	su 角色切换（run a shell with substitute user and group IDs）
-	Usage: su [OPTION]... [-] [USER [ARG]...]
-
-10.	whoami 查看当前用户
-
-11.	w 查看当前登录用户（Show who is logged on and what they are doing）
-	Usage: w - [husfiV] [user]
-
-11.	sudo 提权
-
-12.	visudo 编辑sudo配置文件
-
-7.	groupadd 添加用户组（create a new group）
+3.	groupadd 添加用户组（create a new group）
 	Usage: groupadd [options] group
 	选项：
 		-g 指定组id
 	[root@Ks-CentOS-6 ~]# groupadd sa
 	#创建用户组sa
 
-8.	groupdel 删除用户组（delete a group）
+
+修改：
+1.	chage 修改密码属性（change user password expiry information）
+	Usage: chage [options] LOGIN
+	选项：
+		-l 列表，即读/etc/shadow文件
+		-E 修改账户失效日期，后面接日期，用双引号引起来，格式为YY/MM/DD，如chage -E "2020/12/31"
+		-m 几天内不能修改密码，同passwd命令中的选项-n（min）
+		-M 原密码过期，即几天内必须修改密码，同passwd命令中的选项-x（max）
+		-W 密码还差几天过期时提示该用户修改密码，同passwd命令中的选项-w（warning）
+		-I 密码过期后多少天后禁用用户登录，同passwd命令中的选项-i（inactive）
+
+	[root@Ks-CentOS-6 ~]# chage -E "2020/12/31" cc
+	#修改账户cc，2020年12月31日失效
+	[root@Ks-CentOS-6 ~]# chage -l cc
+	Last password change                                    : Jul 30, 2018
+	Password expires                                        : Oct 28, 2018
+	Password inactive                                       : Nov 27, 2018
+	Account expires                                         : Dec 31, 2020
+	Minimum number of days between password change          : 3
+	Maximum number of days between password change          : 90
+	Number of days of warning before password expires       : 15
+	#查看账户cc密码属性
+
+2.	userdel 删除用户（delete a user account and related files）
+	Usage: userdel [options] LOGIN
+	选项：
+		-r 删除家目录
+	[root@Ks-CentOS-6 ~]# userdel -r testuser
+	#删除testuser，并删除其家目录
+
+3.	usermod 修改用户信息（modify a user account）
+	Usage: usermod [options] LOGIN
+	选项：
+		-c 注释
+		-d 更新家目录
+		-e 终止日期
+		-g 指定属于的主组，修改gid及group
+		-G 指定多组，用","隔开，修改group
+		-l 变更用户登录名
+		-L 冻结用户（lock）
+		-U 取消冻结（unlock）
+		-s 指定shell
+		-u 指定uid
+	usermod -g root ks
+	[root@Ks-CentOS-6 ~]# id ks
+	uid=500(ks) gid=0(root) groups=0(root),500(kshome)
+
+3.	groupdel 删除用户组（delete a group）
 	Usage: groupdel [options] GROUP
 	[root@Ks-CentOS-6 ~]# groupdel s
 	#删除用户组s
+
+4.	chpasswd 修改用户密码（update passwords in batch mode）
+	Usage: chpasswd [options]
+	格式：
+		chpasswd USERNAME:PASSWORD
+
+
+
+查看：
+
+1.	id 显示用户信息（print real and effective user and group IDs）
+	Usage: id [OPTION]... [USERNAME]
+	[root@Ks-CentOS-6 ~]# id ks
+	uid=500(ks) gid=500(kshome) groups=500(kshome)
+
+
+2.	whoami 查看当前用户
+	[root@Ks-CentOS-6 ~]# whoami
+	root
+
+
+3.	groups 显示用户在哪个组里（print the groups a user is in）
+	[root@Ks-CentOS-6 ~]# groups
+	root
+
+
+4.	w 查看当前登录用户并显示其在做什么（Show who is logged on and what they are doing）
+	[root@Ks-CentOS-6 ~]# w
+	 02:12:36 up  7:48,  1 user,  load average: 0.00, 0.00, 0.00
+	USER     TTY      FROM              LOGIN@   IDLE   JCPU   PCPU WHAT
+	root     pts/0    172.16.92.1      01:33    0.00s  0.04s  0.00s w
+
+
+5.	who 查看当前登录用户（show who is logged on）
+	[root@Ks-CentOS-6 ~]# who
+	root     pts/0        2018-08-10 01:33 (172.16.92.1)
+
+
+6.	last 显示登录历史（show listing of last logged in users）
+	其实就是查询文件/var/log/wtmp
+	[root@Ks-CentOS-6 ~]# last | tail -5
+	reboot   system boot  2.6.32-754.el6.x Tue Jul 24 20:31 - 23:28  (02:56)
+	root     tty1                          Tue Jul 24 20:16 - down   (00:01)
+	reboot   system boot  2.6.32-754.el6.x Tue Jul 24 20:16 - 20:18  (00:02)
+
+	wtmp begins Tue Jul 24 20:16:17 2018
+
+
+7.	lastlog 显示每个用户最后一次登录信息（reports the most recent login of all users or of a given user）
+	[root@Ks-CentOS-6 ~]# lastlog
+	Username         Port     From             Latest
+	root             pts/0    172.16.92.1      Fri Aug 10 01:33:35 +0800 2018
+	bin                                        **Never logged in**
+	daemon                                     **Never logged in**
+	adm                                        **Never logged in**
+	lp                                         **Never logged in**
+	sync                                       **Never logged in**
+	shutdown                                   **Never logged in**
+	halt                                       **Never logged in**
+	mail                                       **Never logged in**
+	uucp                                       **Never logged in**
+	operator                                   **Never logged in**
+	games                                      **Never logged in**
+	gopher                                     **Never logged in**
+	ftp                                        **Never logged in**
+	nobody                                     **Never logged in**
+	vcsa                                       **Never logged in**
+	saslauth                                   **Never logged in**
+	postfix                                    **Never logged in**
+	sshd                                       **Never logged in**
+	dbus                                       **Never logged in**
+	abrt                                       **Never logged in**
+	ntp                                        **Never logged in**
+	haldaemon                                  **Never logged in**
+	tcpdump                                    **Never logged in**
+	apache                                     **Never logged in**
+	ks                                         **Never logged in**
+	cc                                         **Never logged in**
+	stu01                                      **Never logged in**
+	stu02                                      **Never logged in**
+	stu03                                      **Never logged in**
+	stu04                                      **Never logged in**
+	stu05                                      **Never logged in**
+	stu06                                      **Never logged in**
+	stu07                                      **Never logged in**
+	stu08                                      **Never logged in**
+	stu09                                      **Never logged in**
+	stu10                                      **Never logged in**
+
+
+切换：
+1.	su 角色切换（run a shell with substitute user and group IDs）
+	Usage: su [OPTION]... [-] [USER [ARG]...]
+	选项：
+		- 切换用户时使新用户配置文件生效，一般情况这个选项为必选，也就是说一般都要加这个"-"
+		-c 使用欲切换用户身份执行命令，但不切换用户（pass a single COMMAND to the shell with -c）
+	[root@Ks-CentOS-6 ~]# su - ks
+	[ks@Ks-CentOS-6 ~]$ su - cc
+	Password:
+	[cc@Ks-CentOS-6 ~]$
+	#切换到ks用户。注：root切别的用户不需要使用密码，其他用户之间切换需要输入密码
+
+	[cc@Ks-CentOS-6 ~]$ su - ks -c pwd
+	Password:
+	/home/ks
+	[cc@Ks-CentOS-6 ~]$
+	#使用ks身份执行pwd，再切回原用户
+	#工作中可以使用-c选项执行一些只有跑在某个用户下的环境内的命令。如启动服务，可以将命令使用-c选项写进/etc/rc.local中
+
+2.	sudo 提权，让普通用户使用root的权限去执行某些命令（execute a command as another user）
+	选项：
+		-l 查看该用户允许使用sudo的命令
+	sudo流程：
+		1. root用户编辑visudo：
+		## Allow root to run any commands anywhere
+		root    ALL=(ALL)       ALL
+		#在下面添加一条允许使用sudo的用户及允许使用sudo的命令（大约98行）
+		ks      ALL=(ALL)       /usr/sbin/useradd
+		#第一列为：用户或组，用户直接写用户名，组前面加"%"，如"%kshome"
+		#第二列为：主机名=(授权角色或者叫用户身份)
+		#第三列为：允许使用的命令（完整路径用逗号","隔开），可以使用"NOPASSWD: ALL"相当于赋予root所有命令权限，NOPASSWD表示执行命令时不提示密码
+		2. 切换用户并查询sudo列表，注意：执行sudo的时候需要检查本用户的时间戳，即5分钟内是否输入密码
+		[ks@Ks-CentOS-6 ~]$ sudo -l
+		[sudo] password for ks:
+		......
+		#中间内容省略...
+		User ks may run the following commands on this host:
+		    (ALL) /usr/sbin/useradd
+		#最后一行标记出允许使用useradd命令
+		3. 使用sudo 加命令来执行
+		[ks@Ks-CentOS-6 ~]$ sudo useradd usertestsudo
+	sudo审计：
+		sudo配合rsyslog服务，进行日志审计
+		[root@Ks-CentOS-6 ~]# rpm -aq sudo rsyslog
+		rsyslog-5.8.10-12.el6.x86_64
+		sudo-1.8.6p3-29.el6_9.x86_64
+		[root@Ks-CentOS-6 ~]# echo "Defaults        logfile=/var/log/sudo.log" >>/etc/sudoers
+		#配置完成
+		#测试开始
+		[root@Ks-CentOS-6 ~]# su - ks
+		#切换ks用户
+		[ks@Ks-CentOS-6 ~]$ sudo ls
+		test  userinfo.txt
+		[ks@Ks-CentOS-6 ~]$ sudo rm -fr test
+		[ks@Ks-CentOS-6 ~]$ sudo ls
+		userinfo.txt
+		[ks@Ks-CentOS-6 ~]$ logout
+		#测试sudo完成，切换回root
+		[root@Ks-CentOS-6 ~]# cat /var/log/sudo.log
+		Aug 10 06:40:17 : ks : TTY=pts/0 ; PWD=/home/ks ; USER=root ; COMMAND=/bin/ls
+		Aug 10 06:40:34 : ks : TTY=pts/0 ; PWD=/home/ks ; USER=root ; COMMAND=/bin/rm
+		    -fr test
+		Aug 10 06:40:40 : ks : TTY=pts/0 ; PWD=/home/ks ; USER=root ; COMMAND=/bin/ls
+		#查看定义的sudo.log文件
+		#测试结束
+
+
+3.	visudo 编辑sudo配置文件（edit the sudoers file），相当于直接编辑/etc/sudoers
+	选项：
+		-c 检查语法
+	别名（注意用户必须存在，ALL必须大写）：
+		root    ALL=(ALL)       ALL
+		# Host_Alias	FILESERVERS = fs1, fs2
+		## 主机别名，可以将多个服务器定义为一个主机组
+		## 主机别名对应在第二列等于号前面的ALL，单机默认ALL就可以
+		# User_Alias 	ADMINS = jsmith, mikem
+		## 用户别名，可以将多个用户或组定义为一个用户别名
+		## 用户别名对应第一列的root，组前面加"%"，多个用","分隔
+		# Runas_Alias	OP = root
+		## 用户身份别名，可以将执行身份定义为别名
+		## 用户身份别名对应第二列括号内的ALL，多个用","分隔
+		# Cmnd_Alias SERVICES = /sbin/service, /sbin/chkconfig
+		## 命令别名，可以为多条预授权命令定义为一个别名
+		## 命令别名对应第三列的ALL，多个用","分隔，用"\"换行
+		## 可以在命令前加"!"，表示禁止，禁止的命令放在后面，允许的命令放在前面
+		User_Alias	Host_Alias=(Runas_Alias)	Cmnd_Alias
+
+	[root@Ks-CentOS-6 ~]# visudo -c
+	/etc/sudoers: parsed OK
+
+
+
+
 
 groupmod
 

@@ -243,22 +243,89 @@ Linux 学习笔记
 	#hostname KS
 		临时设置主机名
 
-23.	useradd 创建用户
-		Usage: useradd [options] LOGIN
+23.	useradd 添加用户（create a new user or update default new user information）
+	Usage: useradd [options] LOGIN
+	选项：
+		-c 注释
+		-d 家目录
+		-e 终止日期
+		-g 指定属于的主组，使用该命令不创建用户名为组名的用户组
+		-G 指定多组，用","隔开
+		-M 创建时不建家目录
+		-s 指定shell
+		-u 指定uid
 	[root@Ks-CentOS-6 test]# useradd ks -g kshome
 	#创建一个用户ks，让其默认在kshome用户组中
 
-24.	passwd 修改密码
-	Usage: passwd [OPTION...] <accountName>
-	#passwd KevinnoTs
-		修改KevinnoTs密码（交互式，可以用户自己操作）
-	#echo "qwert123" | passwd --stdin KevinnoTs
-		通过命令非交互式修改密码（非交互式，只可以root操作）
+	[root@Ks-CentOS-6 ~]# useradd -c "TestUserAdd" -u 806 -G root,sa -s /bin/sh -md /testuser testuseradd
+	[root@Ks-CentOS-6 ~]# tail -1 /etc/passwd
+	testuseradd:x:806:806:TestUserAdd:/testuser:/bin/sh
+	#创建用户testuseradd，使其注释为TestUserAdd，uid为806，所属用户组为root和sa，指定登录shell为/bin/sh，家目录为/testuser
+
+	[root@Ks-CentOS-6 ~]# useradd -g kshome -M -e "2028/01/01" lian
+	#创建用户lian，并不创建用户组lian，让该用户属于kshome，不设置家目录，让其2028年1月1日过期
+
+24.	userdel 删除用户（delete a user account and related files）
+	Usage: userdel [options] LOGIN
+	选项：
+		-r 删除家目录
+	[root@Ks-CentOS-6 ~]# userdel -r testuser
+	#删除testuser，并删除其家目录
+
+24.	passwd 设置或改密码（update user’s authentication tokens）
+	Usage: passwd [options] [username]
+	选项：
+		-n 几天内不能修改密码（min）
+		-x 原密码过期，即几天内必须修改密码（max）
+		-w 密码还差几天过期时提示该用户修改密码（warning）
+		-i 密码过期后多少天后禁用用户登录（inactive）
+		--stdin 非交互式修改密码
+	注意：
+		1.	passwd命令，即/usr/bin/passwd文件，拥有特殊权限，即其他用户执行时拥有该用户属主的权限
+			[root@Ks-CentOS-6 ~]# ll `which passwd`
+			-rwsr-xr-x. 1 root root 30768 Nov 24  2015 /usr/bin/passwd
+		2.	生产环境，用户及密码管理
+				密码要尽量复杂
+				大企业用户和密码统一管理，openldap活动目录账户集中管理
+					一堆服务器，登录时先登录认证服务器，认证服务器去连该服务器认证，认证后登录
+				动态口令
+	[root@Ks-CentOS-6 ~]# passwd ks
+	Changing password for user ks.
+	New password:
+	Retype new password:
+	passwd: all authentication tokens updated successfully.
+	#root用户给ks创建密码
+
+	[root@Ks-CentOS-6 ~]# passwd -n 3 -x 90 -w 15 -i 30 cc
+	Adjusting aging data for user cc.
+	passwd: Success
+	[root@Ks-CentOS-6 ~]# chage -l cc
+	Last password change                                    : Jul 30, 2018
+	Password expires                                        : Oct 28, 2018
+	Password inactive                                       : Nov 27, 2018
+	Account expires                                         : never
+	Minimum number of days between password change          : 3
+	Maximum number of days between password change          : 90
+	Number of days of warning before password expires       : 15
+	#设置用户cc，3天内不能修改密码，90天内原密码到期，到期15天前提醒该用户修改密码，到期30天后不能登录
+
+	[ks@Ks-CentOS-6 ~]$ passwd
+	Changing password for user ks.
+	Changing password for ks.
+	(current) UNIX password:
+	New password:
+	Retype new password:
+	passwd: all authentication tokens updated successfully.
+	#ks用户给自己改密码
+
+	[root@Ks-CentOS-6 ~]# echo "qwert123" | passwd --stdin ks
+	Changing password for user ks.
+	passwd: all authentication tokens updated successfully.
+	#通过命令非交互式修改密码（非交互式，只可以root操作）
 
 25.	su 切换用户
 	Usage: su [options] - [USER [arg]...]
-	#su - KevinnoTs
-		切换用户，切记加“-”
+
 
 26.	whoami 打印当前用户
 	#whoami
@@ -905,59 +972,106 @@ Linux 学习笔记
 		-c 按字符输出，，1个英文字符占1字节，1个中文字符占2字节
 		-d 指定分隔符，默认为TAB锁进为分隔符，输出使用-fnum，其中num为分割后的第num部分。注：只支持单个分隔符
 		-f num 输出分割完的第num部分
-	练习：
-		[root@Ks-CentOS-6 cut]# cat test.txt
-		I'm KevinnoTs, my QQ is 263296!
-		[root@Ks-CentOS-6 cut]# cut -b 3 test.txt
-		m
-		[root@Ks-CentOS-6 cut]# cut -b 3-5 test.txt
-		m K
-		[root@Ks-CentOS-6 cut]# cut -b -5 test.txt
-		I'm K
-		[root@Ks-CentOS-6 cut]# cut -b 5- test.txt
-		KevinnoTs, my QQ is 263296!
-		[root@Ks-CentOS-6 cut]# cut -b 1,5- test.txt
-		IKevinnoTs, my QQ is 263296!
-		[root@Ks-CentOS-6 cut]# cut -b -5,5- test.txt
-		I'm KevinnoTs, my QQ is 263296!
-		#-b选项，按字节来切割文件
-		#不会重复输出内容
 
-		[root@Ks-CentOS-6 cut]# cat test.txt
-		I'm KevinnoTs, my QQ is 263296!
-		我是啐啐
-		[root@Ks-CentOS-6 cut]# cut -c 3 test.txt
-		m
-		啐
-		#-c选项，按字符切割文件
+	[root@Ks-CentOS-6 cut]# cat test.txt
+	I'm KevinnoTs, my QQ is 263296!
+	[root@Ks-CentOS-6 cut]# cut -b 3 test.txt
+	m
+	[root@Ks-CentOS-6 cut]# cut -b 3-5 test.txt
+	m K
+	[root@Ks-CentOS-6 cut]# cut -b -5 test.txt
+	I'm K
+	[root@Ks-CentOS-6 cut]# cut -b 5- test.txt
+	KevinnoTs, my QQ is 263296!
+	[root@Ks-CentOS-6 cut]# cut -b 1,5- test.txt
+	IKevinnoTs, my QQ is 263296!
+	[root@Ks-CentOS-6 cut]# cut -b -5,5- test.txt
+	I'm KevinnoTs, my QQ is 263296!
+	#-b选项，按字节来切割文件
+	#不会重复输出内容
 
-		[root@Ks-CentOS-6 cut]# head -1 /etc/passwd
-		root:x:0:0:root:/root:/bin/bash
-		[root@Ks-CentOS-6 cut]# head -1 /etc/passwd | cut -d : -f5
-		root
-		#使用冒号":"为分割符，取第4部分
+	[root@Ks-CentOS-6 cut]# cat test.txt
+	I'm KevinnoTs, my QQ is 263296!
+	我是啐啐
+	[root@Ks-CentOS-6 cut]# cut -c 3 test.txt
+	m
+	啐
+	#-c选项，按字符切割文件
 
-		[root@Ks-CentOS-6 cut]# cat fenge
-		this    is      tab     line...
-		this is space line...
-		#测试文本
-		[root@Ks-CentOS-6 cut]# cat -T fenge
-		this^Iis^Itab^Iline...
-		this is space line...
-		#通过cat -T显示TAB锁进
-		[root@Ks-CentOS-6 cut]# sed -n l fenge
-		this\tis\ttab\tline...$
-		this is space line...$
-		#sed命令显示所有不可打印字符
-		[root@Ks-CentOS-6 cut]# cut -f 2-3 fenge
-		is      tab
-		this is space line...
-		#不指定分隔符，默认TAB锁进为分割符，-f命令显示第2到第3部分
-		[root@Ks-CentOS-6 cut]# cut -d ' ' -f 2-3 fenge
-		this    is      tab     line...
-		is space
-		#-d选项指定分隔符为空格" "，-f命令显示第2到第3部分
+	[root@Ks-CentOS-6 cut]# head -1 /etc/passwd
+	root:x:0:0:root:/root:/bin/bash
+	[root@Ks-CentOS-6 cut]# head -1 /etc/passwd | cut -d : -f5
+	root
+	#使用冒号":"为分割符，取第4部分
 
+	[root@Ks-CentOS-6 cut]# cat fenge
+	this    is      tab     line...
+	this is space line...
+	#测试文本
+	[root@Ks-CentOS-6 cut]# cat -T fenge
+	this^Iis^Itab^Iline...
+	this is space line...
+	#通过cat -T显示TAB锁进
+	[root@Ks-CentOS-6 cut]# sed -n l fenge
+	this\tis\ttab\tline...$
+	this is space line...$
+	#sed命令显示所有不可打印字符
+	[root@Ks-CentOS-6 cut]# cut -f 2-3 fenge
+	is      tab
+	this is space line...
+	#不指定分隔符，默认TAB锁进为分割符，-f命令显示第2到第3部分
+	[root@Ks-CentOS-6 cut]# cut -d ' ' -f 2-3 fenge
+	this    is      tab     line...
+	is space
+	#-d选项指定分隔符为空格" "，-f命令显示第2到第3部分
+
+79.	chage 修改密码属性（change user password expiry information）
+	Usage: chage [options] LOGIN
+	选项：
+		-l 列表，即读/etc/shadow文件
+		-E 修改账户失效日期，后面接日期，用双引号引起来，格式为YY/MM/DD，如chage -E "2020/12/31"
+		-m 几天内不能修改密码，同passwd命令中的选项-n（min）
+		-M 原密码过期，即几天内必须修改密码，同passwd命令中的选项-x（max）
+		-W 密码还差几天过期时提示该用户修改密码，同passwd命令中的选项-w（warning）
+		-I 密码过期后多少天后禁用用户登录，同passwd命令中的选项-i（inactive）
+
+	[root@Ks-CentOS-6 ~]# chage -E "2020/12/31" cc
+	#修改账户cc，2020年12月31日失效
+	[root@Ks-CentOS-6 ~]# chage -l cc
+	Last password change                                    : Jul 30, 2018
+	Password expires                                        : Oct 28, 2018
+	Password inactive                                       : Nov 27, 2018
+	Account expires                                         : Dec 31, 2020
+	Minimum number of days between password change          : 3
+	Maximum number of days between password change          : 90
+	Number of days of warning before password expires       : 15
+	#查看账户cc密码属性
+
+80.	free 查看内存信息（Display amount of free and used memory in the system）
+	[root@Ks-CentOS-6 ~]# free -m
+	             total       used       free     shared    buffers     cached
+	Mem:           979        112        867          0          9         28
+	-/+ buffers/cache:         74        904
+	Swap:         1499          0       1499
+	#一般情况下需要加-m参数，意思为按M（兆）显示
+
+81.	dd 转换并复制文件（convert and copy a file）
+	[root@Ks-CentOS-6 ~]# dd if=/dev/sda of=mbr.bin bs=512 count=1
+	1+0 records in
+	1+0 records out
+	512 bytes (512 B) copied, 0.000207569 s, 2.5 MB/s
+	#将0磁头0磁道1扇区信息备份到当前目录下，命名为mbr.bin
+
+82.	fdisk 磁盘分区工具（Partition table manipulator for Linux）（小于2T的磁盘，大于2T磁盘使用parted）
+	详细内容参考磁盘部分详解
+	选项：
+		-l 查看磁盘信息
+
+83.	sync 强制将buffers写入磁盘（flush file system buffers）
+	为避免重启或关机丢数据，最好在重启或关机前将buffers写入磁盘
+
+
+##################################################
 
 系统目录
 	Linux目录一般情况下，可执行程序在/usr/bin，数据文件和帮助在/usr/share，运行时加载的配置文件和服务启动命令在/etc
@@ -1042,6 +1156,7 @@ Linux 学习笔记
 	/proc/interrupts 查看中断文件
 
 
+##################################################
 
 通配符：通配符与正则表达式是两个概念，正则表达式主要用于三剑客（其中awk本身就是另一门语言），通配符用于bash命令行
 	* 表示零个或多个字符，通配符中表示所有，正则表达式表示个数
@@ -1158,6 +1273,7 @@ Linux 学习笔记
 	.. 上一级目录
 
 
+##################################################
 
 特殊变量
 	#export HISTSIZE=20
@@ -1201,7 +1317,7 @@ Linux 学习笔记
 	#env | egrep "USER|MAIL|PWD|LOGNAME"
 		查看环境变量，并过滤其中信息
 
-
+##################################################
 
 Linux调优
 1.	SELinux 是美国国家安全局（NSA）对于强制访问控制的实现，建议关闭
@@ -1330,7 +1446,7 @@ Linux调优
 
 
 
-
+##################################################
 
 
 Q&A：
@@ -1387,23 +1503,10 @@ Q&A：
 		chkconfig --level 3 sshd off
 		chkconfig sshd on
 
-Linux开机启动过程
-	1、	开机BIOS自检
-	2、	MBR引导
-		硬盘0柱面0磁道1扇区的前446byte（共512byte，即字节,446b引导+64b分区表负责4个主分区+2b分区结束标志）
-	3、	grub引导菜单
-		cat /etc/grub.conf
-	4、	加载内核kernel
-	5、	启动进程init（Linux启动的第一个进程，进程号为1）
-	6、	init进程读取intitab文件（运行级别），执行rc.sysinit, rc等脚本
-		/etc/inittab			运行级别
-		/etc/rc.d/rc.sysinit	初始化系统
-		/etc/rc.d/rc3.d/		根据运行级别运行该级别下的脚本
-			该目录下链接文件名字开头S为Start运行，K为Kill关闭，后面为脚本文件所在地址
-	7、	启动mingetty，进入登录界面
 
 
 
+##################################################
 
 
 
