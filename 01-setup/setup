@@ -64,53 +64,57 @@ Linux系统安全最小化原则：
 
 
 5. 	如果组件没有在安装过程中添加，可进入系统后安装
-	#yum groupinstall "Base" "Compatibility libraries" "Debugging tools" "Development tools"
-	安装后通过下面命令查询是否安装成功
-	#yum grouplist
+	[root@Ks-CentOS-6 ~]# yum groupinstall "Base" "Compatibility libraries" "Debugging tools" "Development tools"
+	#使用yum groupinstall安装组件
+	[root@Ks-CentOS-6 ~]# yum grouplist
+	#安装后通过下面命令查询是否安装成功
 
 
 6.	安装必要软件如：tree、ntpdate、lrzsz、nmap、telnet、sysstat、screen等
-	#yum install -y tree
-		通过yum命令安装tree
-	安装完成后更新所安装软件包
-	#yum update
+	[root@Ks-CentOS-6 ~]# yum install -y tree
+	#通过yum命令安装tree
+	[root@Ks-CentOS-6 ~]# rpm -qa tree
+	tree-1.5.3-3.el6.x86_64
+	#安装完成后使用rpm -qa命令检查是否安装
+	[root@Ks-CentOS-6 ~]# yum update
+	#安装完成后更新所安装软件包
 
 
 7.	更新服务器时间
 	安装时尽可能选择中国所在时区并避免勾选夏时令
-	#date
-		查看系统日期时间
-	#ntpdate ntp1.aliyun.com
-		通过阿里云ntp服务器更新系统日期时间，类似的还有ntp2.aliyun.com等
+	[root@Ks-CentOS-6 ~]# date
+	#查看系统日期时间
+	[root@Ks-CentOS-6 ~]# ntpdate ntp1.aliyun.com
+	#通过阿里云ntp服务器更新系统日期时间，类似的还有ntp2.aliyun.com等，需要yum安装ntpdate
 
 
 8. 	关闭SELinux
 	SELinux 是美国国家安全局（NSA）对于强制访问控制的实现，建议关闭
-	#cp /etc/selinux/config /etc/selinux/config.ori
-		★★★备份文件，制作一个副本★★★
-	#vim /etc/selinux/config
+	[root@Ks-CentOS-6 ~]# cp /etc/selinux/config /etc/selinux/config.ori
+	#★★★备份文件，制作一个副本★★★
+	[root@Ks-CentOS-6 ~]# vim /etc/selinux/config
 	SELINUX=disabled
-		方法一：修改配置文件，设置关闭
-	#sed -i 's#SELINUX=enforcing#SELINUX=disabled#g' /etc/selinux/config
-		方法二：sed替换命令
-	#getenforce
+	#方法一：修改配置文件，设置关闭
+	[root@Ks-CentOS-6 ~]# sed -i 's#SELINUX=enforcing#SELINUX=disabled#g' /etc/selinux/config
+	#方法二：sed替换命令
+	[root@Ks-CentOS-6 ~]# getenforce
 	Enforcing
-		查看ENLinux状态
-	#setenforce
+	#查看ENLinux状态
+	[root@Ks-CentOS-6 ~]# setenforce
 	usage:  setenforce [ Enforcing | Permissive | 1 | 0 ]
-		查看setenforce方法
-	#setenforce 0
-		设置为Permissive（忽略，即弹出提示，但不阻止操作）
-	#getenforce
+	#查看setenforce方法
+	[root@Ks-CentOS-6 ~]# setenforce 0
+	#设置为Permissive（忽略，即弹出提示，但不阻止操作）
+	[root@Ks-CentOS-6 ~]# getenforce
 	Permissive
-		确认状态为忽略，服务器重启后读取配置文件，状态自动改为disabled
+	#确认状态为忽略，服务器重启后读取配置文件，状态自动改为disabled
 
 
 9.	issue 隐藏Linux版本信息，连接SSH后的欢迎词
-	#cat /etc/issue
-	#cat /etc/issue.net
-	#>/etc/issue
-	#>/etc/issue.net
+	[root@Ks-CentOS-6 ~]# cat /etc/issue
+	[root@Ks-CentOS-6 ~]# cat /etc/issue.net
+	[root@Ks-CentOS-6 ~]# >/etc/issue
+	[root@Ks-CentOS-6 ~]# >/etc/issue.net
 
 
 10.	关闭非必要自启动系统服务
@@ -169,82 +173,83 @@ Linux系统安全最小化原则：
 	chkconfig netfs off
 	chkconfig postfix off
 	chkconfig udev-post off
-		筛选默认安全级别3下的非必要（除那5个必要服务外）自启动服务，并通过awk命令取出服务名并补全命令
+	#筛选默认安全级别3下的非必要（除那5个必要服务外）自启动服务，并通过awk命令取出服务名并补全命令
 	[root@testvm2 ~]# chkconfig --list | grep "3:on" | egrep -v "crond|sshd|network|rsyslog|sysstat" | awk '{print "chkconfig",$1,"off"}' | bash
-		通过通道将提取出的命令传给bash命令逐条执行
+	#通过通道将提取出的命令传给bash命令逐条执行
 	[root@testvm2 ~]# chkconfig --list | grep "3:on"
 	crond           0:off   1:off   2:on    3:on    4:on    5:on    6:off
 	network         0:off   1:off   2:on    3:on    4:on    5:on    6:off
 	rsyslog         0:off   1:off   2:on    3:on    4:on    5:on    6:off
 	sshd            0:off   1:off   2:on    3:on    4:on    5:on    6:off
 	sysstat         0:off   1:on    2:on    3:on    4:on    5:on    6:off
-		再次查看默认安全级别3下启动的服务，结果为5个必要服务，设置完成
+	#再次查看默认安全级别3下启动的服务，结果为5个必要服务，设置完成
+
 	CentOS 7+ 使用systemctl命令控制服务开启、关闭、重启、自启动，思路类似
 	下面简单介绍下systemctl命令：
-		systemctl 系统服务管理器指令，它实际上将 service 和 chkconfig 这两个命令组合到一起
-		Usage: systemctl [OPTIONS...] {COMMAND} ...
-			start 启动服务
-			stop 关闭服务
-			enable 设置开机自启动
-			disable 停止开机自启动
-			restart 重启服务
-			reload 从新加载配置
-			mask 冻结服务
-			unmask 解冻服务
-			status 查看服务状态
-		#systemctl stop firewalld.service
-			关闭防火墙（CentOS 7+），CentOS 6及以前使用/etc/init.d/iptables stop
-		#systemctl status firewalld.service
-			查看防火墙进程（CentOS 7+），CentOS 6及以前使用/etc/init.d/iptables status
-		#systemctl list-unit-files | grep firewalld.service
-			查看防火墙自启状态（CentOS 7+）
-		#systemctl disable firewalld.service
-		Removed symlink /etc/systemd/system/multi-user.target.wants/firewalld.service.
-		Removed symlink /etc/systemd/system/dbus-org.fedoraproject.FirewallD1.service.
-			永久关闭防火墙，即关闭自启动（CentOS 7），CentOS 6及以前用chkconfig iptables off
-		#systemctl restart sshd.service
-			重启ssh服务（CentOS 7+），CentOS 6及以前使用/etc/init.d/sshd restart
-		#systemctl restart network.service
-			重启网络设置，相当于没有返回值的service network restart
-			因该命令影响所有网卡，生产环境建议使用#ifdown ens32 && ifup ens32，这样只针对单独网卡（&&表示前面命令正确执行后运行后面命令）
-		#systemctl list-units
-			列出当前系统服务的状态
-		#systemctl list-unit-files
-			列出服务的开机状态
-		#systemctl status network.service | grep Active:
-			只显示网络设置中的Active那一行信息
-				loaded				系统服务已经初始化完成，加载过配置
-				active（running）	正有一个或多个程序正在系统中执行，vsftpd就是这种模式
-				atcive（exited）	仅执行一次就正常结束的服务，目前并没有任何程序在系统中执行
-				atcive（waiting）	正在执行当中，不过还在等待其他事件才能继续处理
-				inactive			服务关闭
-				enbaled				服务开机启动
-				disabled			服务开机不自启
-				static				服务开机启动项不可被管理
-				failed				系统配置错误
+	systemctl 系统服务管理器指令，它实际上将 service 和 chkconfig 这两个命令组合到一起
+	Usage: systemctl [OPTIONS...] {COMMAND} ...
+		start 启动服务
+		stop 关闭服务
+		enable 设置开机自启动
+		disable 停止开机自启动
+		restart 重启服务
+		reload 从新加载配置
+		mask 冻结服务
+		unmask 解冻服务
+		status 查看服务状态
+	[root@Ks-CentOS-6 ~]# systemctl stop firewalld.service
+	#关闭防火墙（CentOS 7+），CentOS 6及以前使用/etc/init.d/iptables stop
+	[root@Ks-CentOS-6 ~]# systemctl status firewalld.service
+	#查看防火墙进程（CentOS 7+），CentOS 6及以前使用/etc/init.d/iptables status
+	[root@Ks-CentOS-6 ~]# systemctl list-unit-files | grep firewalld.service
+	#查看防火墙自启状态（CentOS 7+）
+	[root@Ks-CentOS-6 ~]# systemctl disable firewalld.service
+	Removed symlink /etc/systemd/system/multi-user.target.wants/firewalld.service.
+	Removed symlink /etc/systemd/system/dbus-org.fedoraproject.FirewallD1.service.
+	#永久关闭防火墙，即关闭自启动（CentOS 7），CentOS 6及以前用chkconfig iptables off
+	[root@Ks-CentOS-6 ~]# systemctl restart sshd.service
+	#重启ssh服务（CentOS 7+），CentOS 6及以前使用/etc/init.d/sshd restart
+	[root@Ks-CentOS-6 ~]# systemctl restart network.service
+	#重启网络设置，相当于没有返回值的service network restart
+	#因该命令影响所有网卡，生产环境建议使用ifdown ens32 && ifup ens32，这样只针对单独网卡
+	[root@Ks-CentOS-6 ~]# systemctl list-units
+	#列出当前系统服务的状态
+	[root@Ks-CentOS-6 ~]# systemctl list-unit-files
+	#列出服务的开机状态
+	[root@Ks-CentOS-6 ~]# systemctl status network.service | grep Active:
+	#只显示网络设置中的Active那一行信息
+	#	loaded				系统服务已经初始化完成，加载过配置
+	#	active（running）	正有一个或多个程序正在系统中执行，vsftpd就是这种模式
+	#	atcive（exited）	仅执行一次就正常结束的服务，目前并没有任何程序在系统中执行
+	#	atcive（waiting）	正在执行当中，不过还在等待其他事件才能继续处理
+	#	inactive			服务关闭
+	#	enbaled				服务开机启动
+	#	disabled			服务开机不自启
+	#	static				服务开机启动项不可被管理
+	#	failed				系统配置错误
 
 
 11.	设置登出时间（为了安全起见，非必要）
-	#export TMOUT=300
-		5分钟（300秒）无操作登出
+	[root@Ks-CentOS-6 ~]# export TMOUT=300
+	#5分钟（300秒）无操作登出
 
 
 12.	设置history历史保存记录（因设置了SecureCRT日志保存，为了安全起见建议减少history保存条数，非必要）
-	#export HISTSIZE=50
-		命令行历史记录数量（临时生效，永久生效 ehco 'export HISTSIZE=50' >>/etc/profile，然后source /etc/profile）
-	#export HISTFILESIZE=100
-		命令行历史文件的记录数量~/.bash_history（临时生效,永久生效 ehco 'export HISTFILESIZE=100' >>/etc/profile，然后source /etc/profile）
+	[root@Ks-CentOS-6 ~]# export HISTSIZE=50
+	#命令行历史记录数量（临时生效，永久生效 ehco 'export HISTSIZE=50' >>/etc/profile，然后source /etc/profile）
+	[root@Ks-CentOS-6 ~]# export HISTFILESIZE=100
+	#命令行历史文件的记录数量~/.bash_history（临时生效,永久生效 ehco 'export HISTFILESIZE=100' >>/etc/profile，然后source /etc/profile）
 
 
 13.	hostname 主机名
-	#hostname
-		查看主机名
-	#hostname TestVM1
-		设置当前主机名，立即生效
-	#hostnamectl set-hostname TestVM1
-		永久设置主机名为TestVM1并立即生效（CentOS 7+）
-	#vim /etc/sysconfig/network
-		编辑network文件修改hostname行，重启生效（CentOS 6及以前版本）
+	[root@Ks-CentOS-6 ~]# hostname
+	#查看主机名
+	[root@Ks-CentOS-6 ~]# hostname TestVM1
+	#设置当前主机名，立即生效
+	[root@Ks-CentOS-6 ~]# hostnamectl set-hostname TestVM1
+	#永久设置主机名为TestVM1并立即生效（CentOS 7+）
+	[root@Ks-CentOS-6 ~]# vim /etc/sysconfig/network
+	#编辑network文件修改hostname行，重启生效（CentOS 6及以前版本）
 
 
 14.	基本设置已完成，如果是虚拟机或vps建议制作快照，并克隆为母版机以备以后使用
@@ -290,8 +295,4 @@ Linux系统安全最小化原则：
 		确认修改后按b重启
 		进系统同方法一，删除root行第二列，即x，删除root密码
 		重启即可无密码登录root
-
-
-
-
 
