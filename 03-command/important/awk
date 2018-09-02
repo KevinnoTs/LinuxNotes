@@ -1,47 +1,151 @@
-awk awk是一种编程语言，用于在linux/unix下对文本和数据进行处理
-Usage: 	awk [options] 'script' var=value file(s)
-		awk [options] -f scriptfile var=value file(s)
+awk awk是一种编程语言，用于在linux/unix下对文本和数据进行处理（pattern scanning and processing language）
+Usage: awk [options] 'pattern {action}' file
+awk指令是由模式，动作，或模式加动作的组合组成
 
-参考资料：http://blog.51cto.com/oldboy/950730
+参考资料：
+http://blog.51cto.com/oldboy/950730
+http://blog.51cto.com/oldboy/1687026
 
 	-F 指定输入分隔符，可以是字符串或正则表达式（还可以使用FS=""）
 	NR 显示当前行的记录号或行号
-	$n 当前记录的第n个字段，比如n为1表示第一个字段，n为2表示第二个字段。
+	FNR 如果需要同时输出多个文件的内容，使用FNR给每个文件独立显示行号
+	RS 每个记录的分隔符，默认为\n（回车换行符）
+	$n 当前记录的第n个字段，比如n为1表示第一个字段，n为2表示第二个字段
 	$0 为当前行内容
 	$NF 为最后一列，$(NF-1)为倒数第二列
 
+	<	小于
+	<=	小于等于
+	==	等于
+	!=	不等于
+	>=	大于等于
+	>	大于
+
+	~	与正则表达式匹配
+	!~	与正则表达式不匹配
+	//	正则表达式用2个/分隔，第一部分为范围，第二部分为正则表达式，第三部分为怎么处理
+	正则表达式需要加 --posix选项
+
+	BEGIN BEGIN模块常用来修改内置变量，如ORS、RS、FS、OFS等。awk会先执行BEGIN模块，再处理输入文本
+	END END模块会在awk处理完所有输入文本后再执行
+
+	awk范围匹配需要准确定位到某一行，在两行之间加","来确定匹配范围
+
+	awk数组：
+		arrayname[string]=value
+			arrayname 数组名
+			string 元素名
+			value 元素值
+		for (key in array) 循环
+
+	split函数
+		split (input-string, output-array, separator)
+		input-string 输入字符串
+		output-array 输出数组
+		separator 分隔符
+
 e.g：
-	#echo -e "Line1 f2 f3 \nLine2 f4 f5" | awk '{print $NF}'
+	[root@Ks-CentOS-6 awk]# echo -e "Line1 f2 f3 \nLine2 f4 f5" | awk '{print $NF}'
 	f3
 	f5
-		$NF为显示最后一列，默认空格为分隔符，$(NF-1)为倒数第二列
+	#$NF为显示最后一列，默认空格为分隔符，$(NF-1)为倒数第二列
 
-	#echo '12345 54321' | awk -F ' ' '{print $2}'
+	[root@Ks-CentOS-6 awk]# echo '12345 54321' | awk -F ' ' '{print $2}'
 	54321
-		使用-F ' '来确定空格为分隔符，将输入内容分割为两部分，$1代表分隔符前面的部分，$2代表分隔符后面的副本，然后输出$2
+	#使用-F ' '来确定空格为分隔符，将输入内容分割，$1代表分隔符前面，$2代表分隔符后面。输出$2
 
-	#echo '192.168.137.186' | awk -F '.' '{print $4,$3" "$2,$1}'
+	[root@Ks-CentOS-6 awk]# echo '192.168.137.186' | awk -F '.' '{print $4,$3" "$2,$1}'
 	186 137 168 192
-		分隔符为.，将原字符串分为4部分，任意调整输出顺序，用逗号连接输出默认分隔符为空格，也可用" "连接
+	#分隔符为.，将原字符串分为4部分，任意调整输出顺序，用逗号连接输出默认分隔符为空格，也可用" "连接
 
-	#echo '12345 54321 23333' | awk 'FS=" " {print $NF}'
+	[root@Ks-CentOS-6 awk]# echo '12345 54321 23333' | awk 'FS=" " {print $NF}'
 	23333
-		使用FS=" "来确定空格为分隔符，请注意书写格式。建议使用-F
+	#使用FS=" "来确定空格为分隔符，请注意书写格式。建议使用-F
 
-	#awk 'NR>19&&NR<26' testseq.txt
+	[root@Ks-CentOS-6 awk]# awk 'NR>19&&NR<26' testseq.txt
 	20
 	21
 	22
 	23
 	24
 	25
-		NR表示行号，表示输出行号大于19行，小于26行，即20~25行内容
+	#NR表示行号，表示输出行号大于19行，小于26行，即20~25行内容
 
-	#awk '{if(NR>19&&NR<26) print $0}' testseq.txt
+	[root@Ks-CentOS-6 awk]# awk '{if(NR>19&&NR<26) print $0}' testseq.txt
 	20
 	21
 	22
 	23
 	24
 	25
-		意思同上，写法不同，输出20~25行内容，使用if判断，$0为当前行内容
+	#意思同上，写法不同，输出20~25行内容，使用if判断，$0为当前行内容
+
+	[root@Ks-CentOS-6 awk]# awk --posix -F ":" '$1~/o{1,2}/{print NR,$1,$NF}' /etc/passwd
+	1 root /bin/bash
+	3 daemon /sbin/nologin
+	7 shutdown /sbin/shutdown
+	11 operator /sbin/nologin
+	13 gopher /sbin/nologin
+	15 nobody /sbin/nologin
+	18 postfix /sbin/nologin
+	23 haldaemon /sbin/nologin
+	# --posix 表示支持正则表达式
+	# -F ":" 表示以冒号为分隔符
+	# $1~ 表示在第一部分匹配，~表示匹配，!~表示不匹配
+	# o{1,2} 表示匹配o或oo
+	# NR 表示显示行号
+	# $NF 表示显示分隔后的最后一部分
+
+	[root@Ks-CentOS-6 awk]# awk -F "[ /]+" '$1~/^(ftp|http|https|mysql|ssh)$/{print $1,$2}' /etc/services | sort -u
+	ftp 21
+	http 80
+	https 443
+	mysql 3306
+	ssh 22
+	# 以一个或多个空格，/为分隔符，在第一列范围内匹配ftp，http，https，mysql，ssh的内容
+	# 显示前两列，并用sort排序，-u重复项只显示一次
+
+	[root@Ks-CentOS-6 awk]# awk 'BEGIN{print "Hello World!"}NR<=5{print NR,$0}' awk.txt
+	Hello World!
+	1 root:x:0:0:root:/root:/bin/bash
+	2 bin:x:1:1:bin:/bin:/sbin/nologin
+	3 daemon:x:2:2:daemon:/sbin:/sbin/nologin
+	4 adm:x:3:4:adm:/var/adm:/sbin/nologin
+	5 lp:x:4:7:lp:/var/spool/lpd:/sbin/nologin
+	#在处理输入文本之前先执行BEGIN模块
+
+	[root@Ks-CentOS-6 awk]# awk 'BEGIN{RS="/"}NR<=5{print NR,$0}' awk.txt
+	1 root:x:0:0:root:
+	2 root:
+	3 bin
+	4 bash
+	bin:x:1:1:bin:
+	5 bin:
+	#使用BEGIN模块，将内置RS替换为/，即/为换行符
+
+	[root@Ks-CentOS-6 awk]# awk '/^$/{a=a+1}END{print a}' /etc/services
+	16
+	#匹配空行，每匹配一次a加1，在处理完整个文本后，输出a的数字，即显示该文本有多少空行
+
+	[root@Ks-CentOS-6 awk]# seq 100 | awk '{a+=$0} END{print a}'
+	5050
+	#计算1+2+...+100
+
+	[root@Ks-CentOS-6 awk]# awk -F "/" '{array[$3]++;print $3,array[$3]}' awkarray.txt
+	www.jisuanqinet.com 1
+	www.jisuanqinet.com 2
+	zhidao.baidu.com 1
+	miaosha.jd.com 1
+	item.jd.com 1
+	item.jd.com 2
+	# 分隔符改为/，第三列为网址
+	# 定义一个数组$3，当$3内信息相同信息出现一次，则数字对应加1
+	# 输出第三列内容及该内容出现的次数
+
+	[root@Ks-CentOS-6 awk]# awk -F "/" '{array[$3]++} END{for(key in array) print key,array[key]}' awkarray.txt
+	item.jd.com 2
+	zhidao.baidu.com 1
+	miaosha.jd.com 1
+	www.jisuanqinet.com 2
+	# 结合上个例子，相同内容只显示最后一次出现
+	# END{for(key in array) print key,array[key]} 可以记为固定用法

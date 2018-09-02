@@ -119,26 +119,7 @@ Linux 学习笔记
 		查看路由表
 		route(选项)(参数)
 
-11.	vi/vim 文本编辑器（Visual editor/Visual editor improved）
-		a i o 进入编辑模式
-		ESC 退出编辑模式
-		dd 命令行模式删除当前行
-		yy 复制当前行
-		p 粘贴复制行
-		G :$ ]] 光标移动到文件最后一行
-		gg :0 [[ 光标移动到文件第一行
-		0 ^ home 光标移动到行首
-		$ end 光标移动到行尾
-		u 撤销
-		/ 向下搜索，继续搜索n，反向搜索N
-		? 向上搜索，继续搜索n，反向搜索N
-		set nu 显示行号
-		:w 保存（write）
-		:q 退出（quit）
-		:wq :x 保存退出
-		:wq! 保存并强制退出
-	#vi /etc/sysconfig/network-scripts/ifcfg-ens32
-		编辑网卡配置文件
+
 
 
 13.	mkdir 创建目录（Make directory）
@@ -199,14 +180,49 @@ Linux 学习笔记
 	#clear
 		清屏，相当于快捷键Ctrl+l
 
-19.	tr 替换
-	#echo 1 2 3 4 >/data/k.txt
-	#tr ' ' '\n' </data/k.txt
+19.	tr 替换或者删除字符串（translate or delete characters）
+	该命令不能直接接文件，需要用重定向符号输入。并且该命令不能直接写入文件
+	Usage: tr [OPTION]... SET1 [SET2]
+	选项：
+		-d 删除
+
+	[root@Ks-CentOS-6 tr]# cat person.txt
+	101,oldboy,CEO
+	102,zhangyao,CTO
+	103,Alex,COO
+	104,yy,CFO
+	105,feixue,CIO
+	[root@Ks-CentOS-6 tr]# tr 'abc' 'ABC' < person.txt
+	101,oldBoy,CEO
+	102,zhAngyAo,CTO
+	103,Alex,COO
+	104,yy,CFO
+	105,feixue,CIO
+	#将文件中的a替换为A，b替换为B，c替换为C
+
+	[root@Ks-CentOS-6 tr]# tr '[a-z]' '[A-Z]' < person.txt
+	101,OLDBOY,CEO
+	102,ZHANGYAO,CTO
+	103,ALEX,COO
+	104,YY,CFO
+	105,FEIXUE,CIO
+	#将文本中所有小写字母替换为大写字母
+
+	[root@Ks-CentOS-6 tr]# echo 1 2 3 4 | tr ' ' '\n'
 	1
 	2
 	3
 	4
-		将/data/k.txt中的空格替换成换行，内容并未写入k.txt中，只是将输出结果替换
+	#将文本中的空格替换为换行符
+
+	[root@Ks-CentOS-6 tr]# tr -d 0 < person.txt
+	11,oldboy,CEO
+	12,zhangyao,CTO
+	13,Alex,COO
+	14,yy,CFO
+	15,feixue,CIO
+	#删除文本中的0
+
 
 20.	tree 树命令，查看目录结构
 	Usage: tree [OPTION]... DIRECTORY...
@@ -1658,6 +1674,283 @@ Linux 学习笔记
 93.	ipmitools 查看硬件信息工具
 
 
+94.	split 按指定行数或大小分割文件（split a file into pieces）
+	Usage: split [OPTION]... [INPUT [PREFIX]]
+	选项：
+		-l 按行数切割
+		-a 指定生成文件后缀的长度，如"-a 4"，默认为2
+		-d 指定生成文件后缀为数字后缀
+		-b 按文件大小切割
+
+	[root@Ks-CentOS-6 split]# wc -l /etc/inittab
+	26 /etc/inittab
+	[root@Ks-CentOS-6 split]# split -l 10 /etc/inittab new_
+	[root@Ks-CentOS-6 split]# ls
+	new_aa  new_ab  new_ac
+	[root@Ks-CentOS-6 split]# wc -l new_*
+	 10 new_aa
+	 10 new_ab
+	  6 new_ac
+	 26 total
+	#每10行切割成一个新文件，26行文本切割为3个文件
+
+	[root@Ks-CentOS-6 split]# split -l 10 -a 4 /etc/inittab new2_
+	[root@Ks-CentOS-6 split]# wc -l new2_*
+	 10 new2_aaaa
+	 10 new2_aaab
+	  6 new2_aaac
+	 26 total
+	#设置新生成的文件名后缀为4位
+
+	[root@Ks-CentOS-6 split]# split -l 10 -d /etc/inittab new3_
+	[root@Ks-CentOS-6 split]# wc -l new3_*
+	 10 new3_00
+	 10 new3_01
+	  6 new3_02
+	 26 total
+	#设置新生成的文件名后缀为数字，默认为2位
+
+	[root@Ks-CentOS-6 split]# ls -hl /tmp
+	total 129M
+	-rw-r--r-- 1 root root 128M Aug 16 15:18 swaptest
+	[root@Ks-CentOS-6 split]# split -b 20M /tmp/swaptest swap_split_
+	[root@Ks-CentOS-6 split]# ls -hl swap_split_*
+	-rw-r--r-- 1 root root  20M Aug 16 18:52 swap_split_aa
+	-rw-r--r-- 1 root root  20M Aug 16 18:52 swap_split_ab
+	-rw-r--r-- 1 root root  20M Aug 16 18:52 swap_split_ac
+	-rw-r--r-- 1 root root  20M Aug 16 18:52 swap_split_ad
+	-rw-r--r-- 1 root root  20M Aug 16 18:52 swap_split_ae
+	-rw-r--r-- 1 root root  20M Aug 16 18:52 swap_split_af
+	-rw-r--r-- 1 root root 8.0M Aug 16 18:52 swap_split_ag
+	#按照大小切割文件
+
+95.	paste 按行合并文件（merge lines of files）
+	Usage: paste [OPTION]... [FILE]...
+	选项：
+		-d 指定分隔符，默认是TAB
+		-s 将行列互换，以前的多行转换为多列，用TAB分隔
+	[root@Ks-CentOS-6 paste]# seq 3 > num.txt
+	[root@Ks-CentOS-6 paste]# cat num.txt line3_aa
+	1
+	2
+	3
+	# inittab is only used by upstart for the default runlevel.
+	#
+	# ADDING OTHER CONFIGURATION HERE WILL HAVE NO EFFECT ON YOUR SYSTEM.
+	##cat命令是将文件首尾连接
+
+	[root@Ks-CentOS-6 paste]# paste num.txt line3_aa
+	1       # inittab is only used by upstart for the default runlevel.
+	2       #
+	3       # ADDING OTHER CONFIGURATION HERE WILL HAVE NO EFFECT ON YOUR SYSTEM.
+	##paste命令是将每一行连接
+
+	[root@Ks-CentOS-6 paste]# paste -d - num.txt line3_aa
+	1-# inittab is only used by upstart for the default runlevel.
+	2-#
+	3-# ADDING OTHER CONFIGURATION HERE WILL HAVE NO EFFECT ON YOUR SYSTEM.
+
+	[root@Ks-CentOS-6 paste]# paste -s num.txt line3_aa
+	1       2       3
+	# inittab is only used by upstart for the default runlevel.     #       # ADDING OTHER CONFIGURATION HERE WILL HAVE NO EFFECT ON YOUR SYSTEM.
+	#将行列转换，用TAB分隔
+
+	[root@Ks-CentOS-6 ~]# cat passwd
+	username
+	password
+	stu112233
+	qwert123
+	stu332211
+	qazwsx321
+	stu445566
+	asdfjkl;
+	[root@Ks-CentOS-6 ~]# paste -sd '=\n' passwd
+	username=password
+	stu112233=qwert123
+	stu332211=qazwsx321
+	stu445566=asdfjkl;
+	#先使用-s选项将所有内容行列互换，然后使用-d参数轮流使用"="和"\n"来替换默认的TAB连接
+
+	[root@Ks-CentOS-6 ~]# paste -d "=" - - <passwd
+	username=password
+	stu112233=qwert123
+	stu332211=qazwsx321
+	stu445566=asdfjkl;
+	#前面的-代表第一部分，后面的-代表第二部分，中间用=分隔
+
+96.	sort 将文件以行位单位按照ASCII码顺序排序，默认升序（sort lines of text files）
+	Usage: sort [OPTION]... [FILE]...
+	选项：
+		-n 按照数值排序
+		-r 倒序排列
+		-u 相同行只显示一次，类似uniq命令
+		-t 指定分隔符，默认为空白符
+		-k 指定区域（分隔符分隔后第几部分）
+
+	[root@Ks-CentOS-6 sort]# cat ip
+	10.0.0.8
+	192.168.31.188
+	10.0.0.4
+	192.168.31.200
+	192.168.1.32
+	192.168.1.12
+	[root@Ks-CentOS-6 sort]# sort ip
+	10.0.0.4
+	10.0.0.8
+	192.168.1.12
+	192.168.1.32
+	192.168.31.188
+	192.168.31.200
+
+	[root@Ks-CentOS-6 sort]# cat ip
+	10.0.0.8
+	192.168.31.188
+	10.0.0.4
+	192.168.31.200
+	192.168.1.32
+	192.168.31.188
+	192.168.1.12
+	[root@Ks-CentOS-6 sort]# sort -u ip
+	10.0.0.4
+	10.0.0.8
+	192.168.1.12
+	192.168.1.32
+	192.168.31.188
+	192.168.31.200
+	#"192.168.31.188"重复，只显示一次
+
+	[root@Ks-CentOS-6 sort]# sort ip | uniq
+	10.0.0.4
+	10.0.0.8
+	192.168.1.12
+	192.168.1.32
+	192.168.31.188
+	192.168.31.200
+	#使用uniq命令和使用-u选项同理
+	[root@Ks-CentOS-6 sort]# sort ip | uniq -c
+      1 10.0.0.4
+      1 10.0.0.8
+      1 192.168.1.12
+      1 192.168.1.32
+      2 192.168.31.188
+      1 192.168.31.200
+    #使用uniq的-c选项可以计算重复行出现的次数
+
+    [root@Ks-CentOS-6 sort]# sort ip
+	10.0.0.4 a
+	10.0.0.8 g
+	192.168.1.12 k
+	192.168.1.32 c
+	192.168.31.188 r
+	192.168.31.200 y
+	[root@Ks-CentOS-6 sort]# sort -k2 ip
+	10.0.0.4 a
+	192.168.1.32 c
+	10.0.0.8 g
+	192.168.1.12 k
+	192.168.31.188 r
+	192.168.31.200 y
+	#选项k指定第二列排序，默认分隔符为空白符
+
+97.	wc 统计文件行数，单词数，字节数（print newline, word, and byte counts for each file）
+	Usage: wc [OPTION]... [FILE]...
+	选项：
+		-c 字节数
+		-m 字符数
+		-l 行数
+		-L 最长行的长度
+		-w 单词数
+
+	[root@Ks-CentOS-6 wc]# wc -c /etc/inittab
+	884 /etc/inittab
+	#文件一共884字节
+	[root@Ks-CentOS-6 wc]# wc -m /etc/inittab
+	884 /etc/inittab
+	#文件一共884字符
+	[root@Ks-CentOS-6 wc]# wc -l /etc/inittab
+	26 /etc/inittab
+	#文件一共26行
+	[root@Ks-CentOS-6 wc]# wc -L /etc/inittab
+	78 /etc/inittab
+	#文件最长的一行一共有78个字符
+	[root@Ks-CentOS-6 wc]# wc -w /etc/inittab
+	149 /etc/inittab
+	#文件一共149个单词
+
+98.	dos2unix 将Windows平台的文本格式化为Linux文本的规范（DOS/MAC to UNIX text file format converter）
+	Windows换行符为：\r\n
+	Linux话行符为：\n
+	[root@Ks-CentOS-6 test]# dos2unix test.txt
+	#将test.txt文件的Windows带来的换行符中\r去掉
+
+99.	diff 按行比较两个文件的不同，也可以对比两个目录下文件名的区别（compare files line by line）
+	Usage: diff [OPTION]... FILES
+		a 增加（add）
+		c 改变（change）
+		d 删除（delete）
+	[root@Ks-CentOS-6 diff]# diff passwd passwd1
+	5,7c5
+	< stu778899
+	< trewq321
+	< stu332211
+	---
+	> stua332211
+	10a9,10
+	> stu887766
+	> 0099887766
+	#以行为单位将两个文件的不同对比出来
+
+	[root@Ks-CentOS-6 diff]# diff /etc/rc3.d/ /etc/rc6.d/
+	Only in /etc/rc6.d/: K25sshd
+	Only in /etc/rc6.d/: K60crond
+	Only in /etc/rc6.d/: K88rsyslog
+	Only in /etc/rc6.d/: K90network
+	Only in /etc/rc6.d/: K99sysstat
+	Only in /etc/rc6.d/: S00killall
+	Only in /etc/rc6.d/: S01reboot
+	Only in /etc/rc3.d/: S01sysstat
+	Only in /etc/rc3.d/: S10network
+	Only in /etc/rc3.d/: S12rsyslog
+	Only in /etc/rc3.d/: S55sshd
+	Only in /etc/rc3.d/: S90crond
+	Only in /etc/rc3.d/: S99local
+	#比较两个目录的不同
+
+
+
+101.	tee 多重定向（read from standard input and write to standard output and files）
+	就是说可以在输出的同时保存到文件中
+	Usage: tee [OPTION]... [FILE]...
+	选项：
+		-a 追加到文件
+	[root@Ks-CentOS-6 tee]# ls -lh / | tee ls.txt
+	total 110K
+	......
+	dr-xr-xr-x.  2 root root 4.0K Jul 25 09:13 bin
+	dr-xr-xr-x.  5 root root 1.0K Aug 16 16:18 boot
+	drwxr-xr-x  18 root root 3.7K Aug 16 15:32 dev
+	drwxr-xr-x. 80 root root 4.0K Aug 16 19:34 etc
+	drwxr-xr-x. 14 root root 4.0K Aug 10 01:42 home
+	dr-xr-xr-x. 12 root root 4.0K Jul 25 09:12 lib
+	......
+	drwxrwxrwt.  3 root root 4.0K Aug 16 22:58 tmp
+	drwxr-xr-x. 13 root root 4.0K Jul 24 20:03 usr
+	drwxr-xr-x. 21 root root 4.0K Jul 30 01:02 var
+	[root@Ks-CentOS-6 tee]# cat ls.txt
+	total 110K
+	......
+	dr-xr-xr-x.  2 root root 4.0K Jul 25 09:13 bin
+	dr-xr-xr-x.  5 root root 1.0K Aug 16 16:18 boot
+	drwxr-xr-x  18 root root 3.7K Aug 16 15:32 dev
+	drwxr-xr-x. 80 root root 4.0K Aug 16 19:34 etc
+	drwxr-xr-x. 14 root root 4.0K Aug 10 01:42 home
+	dr-xr-xr-x. 12 root root 4.0K Jul 25 09:12 lib
+	......
+	drwxrwxrwt.  3 root root 4.0K Aug 16 22:58 tmp
+	drwxr-xr-x. 13 root root 4.0K Jul 24 20:03 usr
+	drwxr-xr-x. 21 root root 4.0K Jul 30 01:02 var
+	#把查询目录结果重定向到文件中，其中部分内容省略
+
 
 ##################################################
 
@@ -1722,6 +2015,7 @@ Linux 学习笔记
 	/etc/resolv.conf 设置DNS，重启网卡环境会覆盖resolv.conf设置
 	/etc/hosts 域名与ip的解析表，相当于本地DNS
 	/etc/sysconfig/network 配置主机名（CentOS 6及以前）
+	/etc/services 显示系统服务的端口号
 	/etc/fstab 硬盘文件系统开机自动挂在文件，即开机要挂载的分区
 	/etc/rc.local 用户自己的软件，写入文件，实现开机自启动
 	/etc/inittab 用于开机时设置系统级别
@@ -2108,6 +2402,15 @@ ctrl+l 	清屏
 ctrl+u 	剪切光标到开头的内容
 ctrl+k 	剪切光标到结尾的内容
 ctrl+r 	搜索已经使用过的命令
-ctrl+w 	清楚前一段内容
+ctrl+w 	清除前一段内容
 ctrl+s 	挂起
 ctrl+q 	取消挂起
+
+
+##################################################
+
+
+监控软件：
+cacti	监控网络流量，绘图功能比较优秀
+nagios	监控服务器的负载和服务状态比较有优势
+zabbix	综合以上两种
