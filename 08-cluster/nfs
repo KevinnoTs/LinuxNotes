@@ -1,0 +1,163 @@
+nfs是网络文件系统，允许一个节点通过网络访问远程计算机的文件系统，远程文件系统可以被直接挂载到本地，文件操作和本地没有区别，如果是局域网的nfs那么io的性能也可以保证
+
+依赖软件包
+	nfs-utils
+
+
+RPC
+
+命令：
+	cat /var/lib/nfs/etab
+	#查看服务端参数
+
+	df -h
+	#查看客户端参数
+
+	cat /etc/fstab
+	#查看本地挂载目录
+
+	cat /proc/mounts
+	#查看客户端参数
+
+	mount -t nfs 172.16.1.31:/data/ /mnt
+	#使用默认参数进行挂载
+
+	mount -t nfs -o noatime,nodiratime 172.16.1.31:/data/ /mnt
+	#禁止更新目录及文件的访问时间戳
+
+	mount -t nfs -o nosuid,noexec,nodev,noatime,nodiratime,intr,rsize=131072,msize=131072 172.16.1.31:/data/ /mnt
+	#安全加优化的挂载方式
+
+	mount /dev/sdb1 /mnt -o defaults,async,noatime,data=writeback,barrier=0
+	#挂载本地文件系统（本地文件系统nodiratime会报错）
+
+	unmount /mnt -lf
+	#强制卸载/mnt挂载
+
+	showmount -e 172.16.1.31
+	#显示nfs服务器输出的目录列表
+
+	exportfs -rv
+	#相当于 /etc/init.d/nfs reload 使新加载的配置文件生效
+
+	exportfs -o rw,sync 172.16.1.0/24:/data
+	#不用修改配置文件，直接生成共享目录
+
+客户端参数：
+	fg/bg			挂载时可选择前台（fg）或后台（bg）执行
+					默认为fg
+					建议使用bg
+
+	soft/hard		soft挂载时如果出问题，会持续尝试连接，在timeout后显示错误停止
+					hard挂载时如果出问题，会持续尝试连接，直到umount或kill
+					默认为hard
+					建议使用hard
+
+	intr			当使用hard挂载的资源出问题，若指定intr参数，可以在timeout后中断，避免出现NFS被锁死
+
+	rsize/wsize		读出（rsize）与写入（wsize）的区块大小（block size）
+					CentOS 5 默认为1024
+					CentOS 6 默认为131072
+					建议根据传输速度设置该值，尽可能大
+
+	proto=tcp/udp	使用什么协议来传输资料
+					默认为tcp
+					建议tcp，比较安全
+
+	-o选项参数：
+		suid/nosuid		当挂载的文件系统上有任何SUID的程序时，nosuid可以禁止suid的使用，提示权限不够
+						默认为suid
+
+		rw/ro			只读（ro）或可写（rw）
+						默认为rw
+
+		dev/nodev		是否可以保留装载文件的特殊功能
+						默认为dev
+
+		exec/noexec		是否具有执行文件的权限，如值存放附件，可以选择noexec，提高安全性
+						默认为exec
+
+		user/nouser		是否允许用户进行文件的挂载与卸载
+						默认为nouser
+
+		auto/noauto		这个auto是指运行mount -a时会不会被挂载，如不需要这个分区随时被挂载，可设置为noauto
+						默认为auto
+
+		async/sync		async设计文件系统I/O的操作都是异步处理，即临时写入内存缓存，不实时写入硬盘，可提高性能，但是有风险
+						sync为实时写入硬盘，安全性更高
+						默认为async
+						建议选择sync
+
+		atime/noatime	每一次数据访问时，会同步更新inode时间戳，选择noatime可提高性能
+						默认为atime
+						建议选择noatime
+
+		defaults		这是fstab里的默认值，包括rw、suid、dev、exec、auto、nouser、async，默认情况大部分都是默认值
+
+		remount			尝试重新挂载已经已经挂载的文件系统，当系统故障时，进入single或rescue修复模式，使用 mount -o remount,rw / 进行重新挂载，修复只读错误
+						参考资料：http://blog.sina.com.cn/s/blog_4a2fadfb010131jf.html
+
+
+服务端内核优化：
+	/proc/sys/net/core/rmen_default		指定接收套接字缓冲区大小的默认值（以字节为单位）
+										默认为124928
+
+	/proc/sys/net/core/rmen_max			指定接收套接字缓冲区大小的最大值（以字节为单位）
+										默认为124928
+
+	/proc/sys/net/core/wmen_default		指定发送套接字缓冲区大小的默认值（以字节为单位）
+										默认为124928
+
+	/proc/sys/net/core/wmen_max			指定发送套接字缓冲区大小的最大值（以字节为单位）
+										默认为124928
+
+	服务端优化如下：
+		cat >>/etc/sysctl.conf<<EOF
+		net.core.wmen_default = 8388608
+		net.core.rmen_default = 8388608
+		net.core.rmen_max = 16777216
+		net.core.wmen_max = 16777216
+		EOF
+
+		sysctl -p
+
+小结：
+	nfs服务端：	rw,sync,all_squash,amounid=65534,amongid=65534
+
+				cat >>/etc/sysctl.conf<<EOF
+				net.core.wmen_default = 8388608
+				net.core.rmen_default = 8388608
+				net.core.rmen_max = 16777216
+				net.core.wmen_max = 16777216
+				EOF
+
+				sysctl -p
+
+	nfs客户端: 	mount -t nfs -o nosuid,noexec,nodev,noatime,nodiratime,rsize=131072,wsize=131072 172.16.1.31:/data /mnt
+
+	大型网站nfs一代软件为分布式文件系统Moosefs（mfs）、GlusterFS、FastDFS
+
+	优缺点：
+		优点：	简单易上手
+				数据在文件系统上，能看得见
+				部署快速，维护简单
+				数据可靠性高，经久耐用
+				服务稳定
+		缺点：	存在单点故障，即nfs宕机了，客户端都不能访问（可以通过负载均衡及高可用方案弥补）
+				大数据高并发效率低，性能有限（2kw/日pv以上要考虑更换）
+				客户端认证是基于IP和主机名，权限要根据id识别，安全性一般（内网问题不大）
+				nfs本身不对数据完整性验证，数据是明文的不加密
+				多台挂载时，连接管理维护麻烦
+				耦合度有些高，涉及同步（实时等待）和乙部（解耦）的概念
+
+
+
+
+
+
+
+
+
+
+
+

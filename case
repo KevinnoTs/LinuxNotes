@@ -131,3 +131,177 @@ root密码丢失找回
 运维java环境时，经常出现内存泄漏，swap被占用的情况，可以临时加大swap，使用mkswap、swapon等命令
 根源还需要让开发修改完善其程序
 
+
+
+
+实战：集群备份
+要求：	1. 备份文件/etc/rc.local ...将备份文件打包到/backup目录的以本机ip为文件名的目录下，文件名要带日期
+		2. 备份到备份服务器，本机超过7天的备份删除
+		3. 备份服务器核对文件是否传输完整，每周六的备份永久保存，其他备份180天后删除
+
+解答：	1. 配置备份服务器：
+			a. 	创建rsync服务用的用户rsync及用户组rsync
+				[root@backup ~]# useradd rsync -s /sbin/nologin -M
+				[root@backup ~]# id rsync
+				uid=501(rsync) gid=501(rsync) groups=501(rsync)
+			b.	创建备份目录/backup，并调整属主与属组
+				[root@backup ~]# mkdir /backup
+				[root@backup ~]# chown -R rsync.rsync /backup/
+				[root@backup ~]# ls -ld /backup/
+				drwxr-xr-x 2 rsync rsync 4096 Sep  3 01:11 /backup/
+			c.	创建虚拟用户密码文件并设置权限
+				[root@backup ~]# vim /etc/rsync.password
+				# 编辑内容：
+				# rsync_backup:ThisIsUserPassword
+				# 此处密码为明文
+				[root@backup ~]# chmod 600 /etc/rsync.password
+				[root@backup ~]# ls -lh /etc/rsync.password
+				-rw------- 1 root root 23 Sep  3 01:18 /etc/rsync.password
+			d.	修改rsync配置文件：/etc/rsyncd.conf，此文件默认不存在
+				[root@backup ~]# vim /etc/rsyncd.conf
+					# rsync config ____Start____
+					# created by ks at 2018/09/03
+					## rsyncd.conf start ##
+					uid = rsync 							#虚拟用户用户名
+					gid = rsync 							#虚拟用户用户组
+					use chroot = no 						#限定目录（yes,no,true,false）
+					max connections = 200 					#最大连接数
+					timeout = 300 							#超时时间（秒）
+					pid file = /var/run/rsyncd.pid 			#进程对应的进程号文件
+					lock file = /var/run/rsyncd.lock 		#锁文件，流程为锁文件--传输--解锁文件
+					log file = /var/run/rsyncd.log 			#日志文件
+					[backup] 								#模块名称
+					path = /backup 							#共享目录
+					ignore errors 							#忽略错误
+					read only = false 						#可写
+					list = false 							#禁止列表（ls）
+					hosts allow = 172.16.1.0/24 			#允许的网段（与拒绝的网段选一个启用）
+					#host deny = 0.0.0.0/32 				#拒绝的网段（与允许的网段选一个启用）
+					auth users = rsync_backup 				#连接的虚拟用户，非系统用户
+					secrets file = /etc/rsync.password 		#虚拟用户的账号密码文件
+					# rsync config ____End____
+			e.	启动服务并加入自启动
+				[root@backup ~]# rsync --daemon
+				[root@backup ~]# ps -ef | grep rsync | grep -v grep
+				[root@backup ~]# lsof -i :873
+				[root@backup ~]# netstat -lntup | grep 873
+				[root@backup ~]# vim /etc/rc.local
+				加入如下行：
+					# rsync start
+					echo "/usr/bin/rsync --daemon"
+		2. 配置客户端
+			a.	创建虚拟用户密码文件并设置权限
+				[root@nfs01 ~]# vim /etc/rsync.password
+				#编辑虚拟用户密码文件
+				# 编辑内容：
+				# ThisIsUserPassword
+				# 此处密码为明文
+				[root@nfs01 ~]# chmod 600 /etc/rsync.password
+				[root@nfs01 ~]# ls -lh /etc/rsync.password
+				-rw------- 1 root root 10 Sep  3 01:34 /etc/rsync.password
+			b.	测试rsync
+		3. 客户端编写脚本，打包、导出md5、上传、删除过期备份，并设置定时任务
+			[root@nfs01 ~]# mkdir -p /server/scrpits/
+			[root@nfs01 ~]# vim backup_data_everyday.sh
+				### Backup data every 0 o'clock by KevinnoTs at 2018/09/04 ###
+				#!/bin/sh
+				## export PAATH ##
+				export PATH=/sbin:/bin:/usr/sbin:/usr/bin
+				## Define var ##
+				BACKUP_DIR=$(echo `ifconfig eth1 | awk -F "[ :]+" 'NR==2 {print $4}'`_$HOSTNAME)
+				BACKUP_PATH=/backup
+				BACKUP_DATE=$(echo $(date +%F)_$(date | cut -c-3))
+				## Make dir for different host ##
+				mkdir -p $BACKUP_PATH/$BACKUP_DIR &&\
+				## shell start ##
+				cd / &&\
+				# Package system config #
+				tar zcfh $BACKUP_PATH/$BACKUP_DIR/backup_sys_conf_${BACKUP_DATE}.tar.gz ./var/spool/cron/ ./etc/rc.local ./server/scripts/ ./etc/hosts &&\
+				# Record md5 in file #
+				find $BACKUP_PATH/$BACKUP_DIR/ -type f -name "*${BACKUP_DATE}.tar.gz" | xargs md5sum >$BACKUP_PATH/$BACKUP_DIR/md5_flag_${BACKUP_DATE}.md5 &&\
+				# Backup all file with rsync #
+				rsync -az $BACKUP_PATH/ rsync_backup@172.16.1.41::backup --password-file=/etc/rsync.password
+				# Delete backup file which is 7 days age #
+				find $BACKUP_PATH/$BACKUP_DIR/ -type f -mtime +7 \( -name "*.tar.gz" -o -name "*.md5" \) | xargs rm -f
+			[root@nfs01 backup]# crontab -e
+				# Backup data every 0 o'clock by KevinnoTs at 2018/09/04
+				00 00 * * * /bin/sh /server/scripts/backup_data_everyday.sh >/dev/null 2>&1
+		4. 服务端配置邮件服务
+			a.	备份mail配置文件 /etc/mail.rc
+				[root@backup ~]# cp /etc/mail.rc{,.bak}
+			b.	修改配置文件 /etc/mail.rc
+				[root@backup ~]# vim /etc/mail.rc
+					set from=ks_linux_mail@163.com
+					set smtp=smtp.163.com
+					set smtp-auth-user=ks_linux_mail
+					set smtp-auth-password=kslinux123
+					set smtp-auth=login
+			c.	测试邮件发送
+				[root@backup ~]# echo "test linux mail" | mail -v -s "test" kevinnots@163.com
+				Resolving host smtp.163.com . . . done.
+				Connecting to 220.181.12.11 . . . connected.
+				220 163.com Anti-spam GT for Coremail System (163com[20141201])
+				>>> EHLO localhost
+				250-mail
+				250-PIPELINING
+				250-AUTH LOGIN PLAIN
+				250-AUTH=LOGIN PLAIN
+				250-coremail 1Uxr2xKj7kG0xkI17xGrU7I0s8FY2U3Uj8Cz28x1UUUUU7Ic2I0Y2UFNhGfJUCa0xDrUUUUj
+				250-STARTTLS
+				250 8BITMIME
+				>>> AUTH LOGIN
+				334 dXNlcm5hbWU6
+				>>> a3NfbGludXhfbWFpbA==
+				334 UGFzc3dvcmQ6
+				>>> a3NsaW51eDEyMw==
+				235 Authentication successful
+				>>> MAIL FROM:<ks_linux_mail@163.com>
+				250 Mail OK
+				>>> RCPT TO:<kevinnots@163.com>
+				250 Mail OK
+				>>> DATA
+				354 End data with <CR><LF>.<CR><LF>
+				>>> .
+				250 Mail OK queued as smtp7,C8CowACHoytJl45bFPcZPg--.22717S2 1536071497
+				>>> QUIT
+				221 Bye
+		5. 服务端编写脚本，核对md5，将核对结果发邮件给管理员，设置删除条件
+			a.	创建一个目录用来存放md5检验后的结果，所有服务器将检查结果汇总到一个文件中再发邮件通知管理员
+				[root@backup ~]# mkdir -p /backup/check_md5_result
+			b.	编写脚本，主要负责检查md5值并写入文件，和删除180天前的非周六备份
+					### Check the backup md5 and delete old file by KevinnoTs at 2018/09/04 ###
+					#!/bin/sh
+					## export PAATH ##
+					export PATH=/sbin:/bin:/usr/sbin:/usr/bin
+					## Define var ##
+					BACKUP_PATH=/backup
+					BACKUP_DATE=$(echo $(date +%F)_$(date | cut -c-3))
+					## shell start ##
+					cd / &&\
+					# Check md5 and record these result in file #
+					find $BACKUP_PATH -type f -name "*${BACKUP_DATE}.md5" | xargs md5sum -c >>$BACKUP_PATH/check_md5_result/${BACKUP_DATE}.log &&\
+					# Delete the file which is 180 days ago #
+					find /backup -type f ! -name "*_Sat.*" -mtime +180 | xargs rm -f
+			c.	编写脚本，负责发送邮件告知管理员检验结果
+					### Send the check md5 result to admin by KevinnoTs at 2018/09/04 ###
+					#!/bin/sh
+					## export PAATH ##
+					export PATH=/sbin:/bin:/usr/sbin:/usr/bin
+					## Define var ##
+					BACKUP_PATH=/backup
+					BACKUP_DATE=$(echo $(date +%F)_$(date | cut -c-3))
+					## shell start ##
+					cd / &&\
+					# Send the mail #
+					cat /backup/check_md5_result/2018-09-04_Tue.log | sort -u | mail -s "$BACKUP_DATE backup result" kevinnots@163.com
+			d.	编写定时任务，将检查和发送邮件添加到定时任务中
+				[root@backup ~]# crontab -e
+					# Check the backup file with md5 by KevinnoTs at 2018/09/04
+					00 06 * * * /bin/sh /server/scripts/check_and_del.sh >/dev/null 2>&1
+
+					# Send the check result to admin by KevinnoTs at 2018/09/04
+					00 07 * * * /bin/sh /server/scripts/send_mail.sh >/dev/null 2>&1
+		Done！
+
+
+

@@ -1,0 +1,449 @@
+rsync（Remote SYNChronization）
+	是一款开源的、快速的、多功能的、可实现全量及增量的本地或远程数据同步备份的优秀工具
+	rsync - a fast, versatile, remote (and local) file-copying tool
+	rsync适用于多种操作系统平台：nuix/linux/windows
+
+rsync 特性
+	支持拷贝特殊文件，如链接文件，设备等
+	可以有排除指定文件或目录的功能，相当于打包命令tar的排除功能
+	可以做到保持原文件或目录的权限、时间、软硬链接、属主、组等所有属性均不改变 -p
+	可实现增量同步，即只同步发生变化的数据，因此传输效率高
+	可以通过rcp、rsh、ssh等方式来配合传输文件，即可以通过通道给传输加密（rsync本身传输数据时不加密）
+	可以通过socket（进程）方式传输文件和数据
+	支持匿名或认证的进程模式传输，可实现方便安全的数据传输
+
+rsync 相当于scp、cp、rm，但优于他们的每一个命令
+
+rsync 备份分为实时备份及定时备份，用户数据建议实时备份，代码及配置可以设置为每日备份
+
+rsync 优缺点
+	优点：
+		1. 增量备份，支持socket（daemon），集中备份（支持推拉）
+		2. 远程shell模式，还可以使用通道加密（ssh）传输，shell需要加密可以使用vpn服务
+
+	缺点：
+		1. 大量小文件同步时间长
+		2. 同步大文件时容易中断，未完全同步前是隐藏文件，可以通过续传参数继续传输
+
+rsync 工作方式
+1、	Local 本地，相当于cp
+	rsync [OPTION...] SRC... [DEST]
+	选项：
+		-a --archive 归档模式，表示以递归方式传输，并保持文件属性，等于-rtopgDl
+		-v --verbose 详细输出
+		-z --compress 传输时压缩
+		-r --recursive 对子目录递归
+		-t --times 保持文件时间信息
+		-o --owner 保持文件属主信息
+		-p --perms 保持文件权限信息
+		-g --group 保持文件属组信息
+		-P --progress 显示同步的过程及传输时的进度等信息
+		-D --devices 保持设备文件信息
+		-l --links 保留文件软链接
+		-e --rsh=COMMAND 使用的信道协议，指定替代rsh的shell程序，如ssh
+		--delete 源地址中如果没有的，在目标地址中删除，谨慎操作
+		--exclude=PATTERN 指定排除不需要出啊述的文件模式，和tar参数一样
+		--exclude-from=file 文件名所在的目录文件，和tar参数一样
+		--bwlimit=RATE limit socket I/O bandwidth 限速
+	注意：
+		rsync -avz /opt/ /tmp/
+		rsync -avz /opt /tmp/
+		这两条命令是不一样的
+		/opt/表示仅同步该文件夹下的内容
+		/opt表示同步该文件夹及文件夹下的内容
+
+	[root@backup ~]# rsync /etc/hosts /tmp/
+	#通过rsync复制文件到指定目录，类似cp命令
+	[root@backup ~]# ll /tmp/hosts
+	-rw-r--r-- 1 root root 172 Sep  3 00:00 /tmp/hosts
+	#查看文件复制结果
+	[root@backup ~]# rsync -vzrtopg /etc/hosts /tmp/
+	sending incremental file list
+	hosts
+
+	sent 132 bytes  received 31 bytes  326.00 bytes/sec
+	total size is 172  speedup is 1.06
+	#-vzrtopg 选项表示复制属性，并显示过程
+
+2、 Access via remote shell 通过远程shell（SSH）传输，可以机密
+	Pull: rsync [OPTION...] [USER@]HOST:SRC... [DEST]
+	Push: rsync [OPTION...] SRC... [USER@]HOST:DEST
+
+	[root@backup ~]# rsync -avz /etc/hosts -e 'ssh -p 22' ks@10.0.0.31:/tmp/
+	The authenticity of host '10.0.0.31 (10.0.0.31)' can't be established.
+	RSA key fingerprint is d7:b7:f6:c0:4f:5f:0f:06:f9:bc:db:56:03:ad:ca:eb.
+	Are you sure you want to continue connecting (yes/no)? yes
+	Warning: Permanently added '10.0.0.31' (RSA) to the list of known hosts.
+	ks@10.0.0.31's password:
+	sending incremental file list
+	hosts
+
+	sent 132 bytes  received 31 bytes  21.73 bytes/sec
+	total size is 172  speedup is 1.06
+	#通过推（Push）方式，将目标文件推给远程服务器，通过ssh信道传输
+	[root@nfs01 ~]# ll /tmp/hosts
+	-rw-r--r-- 1 ks kshome 172 Aug 31 17:15 /tmp/hosts
+	#查看另外一台服务器，是否传输成功
+
+	############################################################
+	### ssh连接慢，可编辑目标ssh配置文件：/etc/ssh/sshd_config
+	### 80行左右的 GSSAPIAuthentication 参数改为 no
+	### 122行左右的 UseDNS 参数改为 no
+	############################################################
+
+3、	Access via rsync daemon 通过进程控制（端口873）
+	Pull: rsync [OPTION...] [USER@]HOST::SRC... [DEST]
+	      rsync [OPTION...] rsync://[USER@]HOST[:PORT]/SRC... [DEST]
+	Push: rsync [OPTION...] SRC... [USER@]HOST::DEST
+          rsync [OPTION...] SRC... rsync://[USER@]HOST[:PORT]/DEST
+
+    部署在服务端，运行daemon进程监听873端口，在客户端使用rsync进行推拉操作
+
+
+部署过程
+	部署服务
+		配置文件：/etc/rsyncd.conf，此文件默认不存在
+			# rsync config ____Start____
+			# created by ks at 2018/09/03
+			## rsyncd.conf start ##
+			uid = rsync 							#虚拟用户用户名
+			gid = rsync 							#虚拟用户用户组
+			use chroot = no 						#限定目录（yes,no,true,false）
+			max connections = 200 					#最大连接数
+			timeout = 300 							#超时时间（秒）
+			pid file = /var/run/rsyncd.pid 			#进程对应的进程号文件
+			lock file = /var/run/rsyncd.lock 		#锁文件，流程为锁文件--传输--解锁文件
+			log file = /var/run/rsyncd.log 			#日志文件
+			[backup] 								#模块名称
+			path = /backup 							#共享目录
+			ignore errors 							#忽略错误
+			read only = false 						#可写
+			list = false 							#禁止列表（ls）
+			hosts allow = 172.16.1.0/24 			#允许的网段（与拒绝的网段选一个启用）
+			#host deny = 0.0.0.0/32 				#拒绝的网段（与允许的网段选一个启用）
+			auth users = rsync_backup 				#连接的虚拟用户，非系统用户
+			secrets file = /etc/rsync.password 		#虚拟用户的账号密码文件
+			# rsync config ____End____
+
+		创建虚拟用户：
+			[root@backup ~]# useradd rsync -s /sbin/nologin -M
+			#创建用户，禁止登陆，不创建家目录
+			[root@backup ~]# tail -1 /etc/passwd
+			rsync:x:501:501::/home/rsync:/sbin/nologin
+			[root@backup ~]# id rsync
+			uid=501(rsync) gid=501(rsync) groups=501(rsync)
+			#查看rsync用户
+
+		创建共享目录：
+			[root@backup ~]# mkdir /backup
+			#创建目录
+			[root@backup ~]# ls -ld /backup/
+			drwxr-xr-x 2 root root 4096 Sep  3 01:11 /backup/
+			#查看该文件夹，属主与属组需要调整
+			[root@backup ~]# chown -R rsync.rsync /backup/
+			#调整属主与属组
+			[root@backup ~]# ls -ld /backup/
+			drwxr-xr-x 2 rsync rsync 4096 Sep  3 01:11 /backup/
+			#再次查看文件夹
+
+		创建虚拟用户的账号密码文件：
+			[root@backup ~]# vim /etc/rsync.password
+			# 编辑内容：
+			# rsync_backup:ThisIsUserPassword
+			# 此处密码为明文
+			[root@backup ~]# ls -lh /etc/rsync.password
+			-rw-r--r-- 1 root root 23 Sep  3 01:18 /etc/rsync.password
+			#查看密码文件，权限需要调整
+			[root@backup ~]# chmod 600 /etc/rsync.password
+			[root@backup ~]# ls -lh /etc/rsync.password
+			-rw------- 1 root root 23 Sep  3 01:18 /etc/rsync.password
+			#权限改为600后，再次检查该文件
+
+		启动进程：
+			[root@backup ~]# rsync --daemon
+			#启动进程
+			[root@backup ~]# ps -ef | grep rsync | grep -v grep
+			root       5776      1  0 01:08 ?        00:00:00 rsync --daemon
+			#查看进程
+			[root@backup ~]# lsof -i :873
+			COMMAND  PID USER   FD   TYPE DEVICE SIZE/OFF NODE NAME
+			rsync   5776 root    4u  IPv4  36808      0t0  TCP *:rsync (LISTEN)
+			rsync   5776 root    5u  IPv6  36809      0t0  TCP *:rsync (LISTEN)
+			#查看873端口
+			[root@backup ~]# netstat -lntup | grep 873
+			tcp 	0		0 		0.0.0.0:873		0.0.0.0:*		LISTEN		5776/rsync
+			tcp     0   	0 		:::873        	:::*            LISTEN      5776/rsync
+
+		服务加入自启动：
+			编辑 /etc/rc.local
+			加入如下行：
+				# rsync start
+				echo "/usr/bin/rsync --daemon"
+			[root@backup ~]# cat /etc/rc.local
+			#!/bin/sh
+			#
+			# ...... 省略其他内容
+			# rsync start by KevinnoTs at 2018/09/03
+			echo "/usr/bin/rsync --daemon"
+
+	配置客户端
+		[root@nfs01 ~]# vim /etc/rsync.password
+		#编辑虚拟用户密码文件
+		# 编辑内容：
+		# ThisIsUserPassword
+		# 此处密码为明文
+		[root@nfs01 ~]# ls -lh /etc/rsync.password
+		-rw-r--r-- 1 root root 10 Sep  3 01:34 /etc/rsync.password
+		[root@nfs01 ~]# chmod 600 /etc/rsync.password
+		[root@nfs01 ~]# ls -lh /etc/rsync.password
+		-rw------- 1 root root 10 Sep  3 01:34 /etc/rsync.password
+		#修改密码文件权限为600
+
+	测试自动同步（nfs01为客户端，bakcup为服务端）
+		[root@nfs01 ~]# mkdir /backup
+		#客户机创建backup目录，方便以后操作，流程为需要备份的文件先复制到backup目录，再打包传到备份服务器
+
+		[root@nfs01 ~]# cd /backup
+		[root@nfs01 backup]# touch test{01..10}
+		[root@nfs01 backup]# ls
+		test01  test02  test03  test04  test05  test06  test07  test08  test09  test10
+		#创建测试文件，进行测试
+		[root@nfs01 backup]# rsync -avz /backup/ rsync_backup@172.16.1.41::backup/
+		Password:
+		sending incremental file list
+		./
+		test01
+		test02
+		test03
+		test04
+		test05
+		test06
+		test07
+		test08
+		test09
+		test10
+		sent 465 bytes  received 201 bytes  190.29 bytes/sec
+		total size is 0  speedup is 0.00
+		# 方法一测试推送
+		# 语法：rsync [OPTION...] SRC... [USER@]HOST::DEST
+		# SRC为源目录，DEST为目标模块名（可加子目录）
+
+		[root@backup backup]# ls
+		test01  test02  test03  test04  test05  test06  test07  test08  test09  test10
+		#切换到服务端，发现同步成功
+
+		[root@nfs01 backup]# rsync -avz /backup/ rsync_backup@172.16.1.41::backup/ --password-file=/etc/rsync.password
+		sending incremental file list
+		sent 102 bytes  received 8 bytes  220.00 bytes/sec
+		total size is 0  speedup is 0.00
+		#通过密码文件，使传输过程无交互输入密码情况，方便写入脚本，做定时任务
+
+		[root@nfs01 backup]# rsync -avz /backup/ rsync://rsync_backup@172.16.1.41/backup/ --password-file=/etc/rsync.password
+		sending incremental file list
+		./
+		test01
+		test02
+		test03
+		test04
+		test05
+		test06
+		test07
+		test08
+		test09
+		test10
+		sent 465 bytes  received 201 bytes  1332.00 bytes/sec
+		total size is 0  speedup is 0.00
+		# 方法二，只是语法不通，方法一样
+		# 语法：rsync [OPTION...] SRC... rsync://[USER@]HOST[:PORT]/DEST
+		# SRC为源目录，DEST为目标模块名（可加子目录）
+
+		[root@nfs01 backup]# rsync -avz rsync_backup@172.16.1.41::backup/ /backup/ --password-file=/etc/rsync.password
+		receiving incremental file list
+		./
+		a
+		b
+		c
+		d
+		e
+		f
+		g
+		sent 200 bytes  received 412 bytes  1224.00 bytes/sec
+		total size is 0  speedup is 0.00
+		[root@nfs01 backup]# ls
+		a  b  c  d  e  f  g
+		# 客户端从服务端“拉”动作
+		# 语法：rsync [OPTION...] [USER@]HOST::SRC... [DEST]
+		# SRC为模块，DEST为目标目录
+
+	重启服务（如修改配置文件等等需要重启服务）
+		[root@backup backup]# lsof -i :873
+		COMMAND  PID USER   FD   TYPE DEVICE SIZE/OFF NODE NAME
+		rsync   5776 root    4u  IPv4  36808      0t0  TCP *:rsync (LISTEN)
+		rsync   5776 root    5u  IPv6  36809      0t0  TCP *:rsync (LISTEN)
+		#确认服务正在运行
+		[root@backup backup]# pkill rsync
+		#结束进程
+		[root@backup backup]# lsof -i :873
+		#检查
+		[root@backup backup]# rsync --daemon
+		#再次运行
+		[root@backup backup]# lsof -i :873
+		COMMAND  PID USER   FD   TYPE DEVICE SIZE/OFF NODE NAME
+		rsync   5902 root    4u  IPv4  38015      0t0  TCP *:rsync (LISTEN)
+		rsync   5902 root    5u  IPv6  38016      0t0  TCP *:rsync (LISTEN)
+		#检查
+
+	排错
+		1.	看错误输出结果
+		2. 	看日志 tail /var/log/rsyncd.log
+		3.	熟练部署过程
+
+
+	多模块
+		1.	备份当前配置文件 /etc/rsyncd.conf
+			[root@backup ~]# cp /etc/rsyncd.conf{,.bak}
+		2.	如其他配置都一样，只需要添加
+			[backup] 								#模块名称
+			path = /backup 							#共享目录
+			这两个参数就可以了，把之前模块的其他参数放到上面变成全局参数控制所有
+
+	排除同步
+		客户端排除：
+		[root@nfs01 backup]# rsync -avz --exclude=a /backup/ rsync_backup@172.16.1.41::backup/ --password-file=/etc/rsync.password
+		# 只有a这个文件不同步
+
+		[root@nfs01 backup]# rsync -avz --exclude={a,b} /backup/ rsync_backup@172.16.1.41::backup/ --password-file=/etc/rsync.password
+		# 排除文件a和文件b
+
+		[root@nfs01 backup]# rsync -avz --exclude={a..f} /backup/ rsync_backup@172.16.1.41::backup/ --password-file=/etc/rsync.password
+		# 排除文件名连续的a-f文件
+
+		[root@nfs01 backup]# rsync -avz --exclude-from=paichu.log /backup/ rsync_backup@172.16.1.41::backup/ --password-file=/etc/rsync.password
+		# 通过paichu.log文件排除
+
+		服务端排除：
+		修改配置文件，可以 man /etc/rsyncd.conf 查看相关内容，不常用
+
+	无差异同步
+	[root@nfs01 backup]# rsync -avz --delete /backup/ rsync_backup@172.16.1.41::backup/ --password-file=/etc/rsync.password
+	# 无差异同步 --delete
+	# 问题：如果服务端有其他客户端没有的文件，推送时客户端会删除服务端的那些文件
+	# 谨慎使用
+
+	加密传输
+		通道模式
+			一般配合ssh key免密钥传输，结合定时任务
+			rsync -avzP -e 'ssh -p 22' /etc root@10.0.0.142:/tmp
+		daemon模式
+			一般内网不需要加密，因为加密有损失
+			或者采用vpn加密
+
+	传输限速
+		[root@nfs01 backup]# dd if=/dev/zero of=test1 bs=1M count=128
+		128+0 records in
+		128+0 records out
+		134217728 bytes (134 MB) copied, 1.45564 s, 92.2 MB/s
+		# 客户端创建一个大文件，进行测试
+
+		[root@nfs01 backup]# rsync -avz /backup/ rsync_backup@172.16.1.41::backup/ --password-file=/etc/rsync.password
+		sending incremental file list
+		./
+		test1
+		sent 130609 bytes  received 30 bytes  87092.67 bytes/sec
+		total size is 134217728  speedup is 1027.39
+		# 推到备份服务器，未限速，速度为87k/s
+
+		[root@nfs01 backup]# rsync -avz --bwlimit=10 /backup/ rsync_backup@172.16.1.41::backup/ --password-file=/etc/rsync.password
+		sending incremental file list
+		./
+		test1
+		sent 130609 bytes  received 30 bytes  6076.23 bytes/sec
+		total size is 134217728  speedup is 1027.39
+		# 设置限速，默认单位为k/s，实际速度为6k/s
+
+
+
+
+实时备份
+	实现方式：inotify实现监控目录，如有修改则调用备份命令
+
+	部署过程：
+		1.	搭建rsync服务端并配置好客户端
+			a.	服务端修改配置文件 /etc/rsyncd.conf ，增加新模块，重启服务
+					[rtbak]
+					path = /backup/nfs_backup
+			b.	服务端创建接收备份文件夹并配置属主及属组
+				[root@backup ~]# mkdir -p /backup/nfs_backup
+				[root@backup ~]# chown -R rsync.rsync /backup/nfs_backup/
+				[root@backup ~]# ls -ldh /backup/nfs_backup/
+				drwxr-xr-x 2 rsync rsync 4.0K Sep  5 11:37 /backup/nfs_backup/
+			c.	客户端创建需要共享目录
+				[root@nfs01 ~]# mkdir /data
+			d.	测试同步
+				[root@nfs01 data]# rsync -avz /data/ rsync_backup@172.16.1.41::rtbak/ --password-file=/etc/rsync.password
+		2.	客户端搭建inotify环境
+			a.	检查是否支持inotify
+				[root@nfs01 data]# uname -r
+				2.6.32-754.3.5.el6.x86_64
+				#检查内核是否大于2.6.13
+				[root@nfs01 data]# ls -l /proc/sys/fs/inotify
+				total 0
+				-rw-r--r-- 1 root root 0 Sep  5 11:48 max_queued_events
+				-rw-r--r-- 1 root root 0 Sep  5 11:48 max_user_instances
+				-rw-r--r-- 1 root root 0 Sep  5 11:48 max_user_watches
+				#查看该目录，如果有这三个文件表示支持inotify
+			b.	安装软件包
+				[root@nfs01 data]# rpm -qa inotify-tools
+				# 检查是否安装该软件
+				# 如果没有需要安装软件包
+				[root@nfs01 tools]# cd /etc/yum.repos.d/
+				[root@nfs01 yum.repos.d]# mv CentOS-Base.repo{,.bak}
+				#备份yum源配置文件
+				[root@nfs01 yum.repos.d]# curl -O http://mirrors.aliyun.com/repo/Centos-6.repo
+				#在阿里云下载阿里云配置文件
+				[root@nfs01 yum.repos.d]# yum makecache
+				#生成缓存
+				[root@nfs01 yum.repos.d]# yum install -y epel-release
+				#添加EPEL源
+				## 之前的步骤也可以通过
+				## wget -O /etc/yum.repos.d/epel.repo http://mirrors.aliyun.com/repo/epel-6.repo
+				## 命令，实现添加阿里云EPEL源
+				[root@nfs01 yum.repos.d]# yum update
+				#更新yum包
+				[root@nfs01 yum.repos.d]# yum install inotify-tools -y
+				#安装inotify包
+				[root@nfs01 yum.repos.d]# rpm -qa inotify-tools
+				inotify-tools-3.14-1.el6.x86_64
+				#检查inotify安装情况
+			c.	inotifywait工具简介
+				选项：
+					-m 	实时监听
+					-d 	后台运行
+					-r 	递归
+					-e 	事件（可以定义增、删、改）
+						事件：
+							access 访问
+							modify 修改
+							attrib 属性
+							close_write 写入关闭
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
