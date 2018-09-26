@@ -1,0 +1,189 @@
+创建数据库和数据库用户
+
+[root@web01 ~]# mysql -uroot -p123456
+
+mysql> show databases;
++--------------------+
+| Database           |
++--------------------+
+| information_schema |
+| mysql              |
+| performance_schema |
+| test               |
++--------------------+
+4 rows in set (0.55 sec)
+#查看数据库
+
+mysql> drop database test;
+Query OK, 0 rows affected (0.23 sec)
+#删除测试库
+
+mysql> show databases;
++--------------------+
+| Database           |
++--------------------+
+| information_schema |
+| mysql              |
+| performance_schema |
++--------------------+
+3 rows in set (0.00 sec)
+
+mysql> create database wordpress;
+Query OK, 1 row affected (0.53 sec)
+#创建wordpress数据库
+
+mysql> show databases;
++--------------------+
+| Database           |
++--------------------+
+| information_schema |
+| mysql              |
+| performance_schema |
+| wordpress          |
++--------------------+
+4 rows in set (0.00 sec)
+
+mysql> select user();
++----------------+
+| user()         |
++----------------+
+| root@localhost |
++----------------+
+1 row in set (0.60 sec)
+#查看当前用户
+
+mysql> select user,host from mysql.user;
++------+-----------+
+| user | host      |
++------+-----------+
+| root | 127.0.0.1 |
+| root | ::1       |
+|      | localhost |
+| root | localhost |
+|      | web01     |
+| root | web01     |
++------+-----------+
+6 rows in set (0.00 sec)
+#默认用户
+
+mysql> grant all on wordpress.* to wpuser@'localhost' identified by '123456';
+Query OK, 0 rows affected (0.53 sec)
+## grant 授权
+## all 所有权限
+## wordpress.* wordpress数据库.所有表
+
+mysql> select user,host from mysql.user;
++--------+-----------+
+| user   | host      |
++--------+-----------+
+| root   | 127.0.0.1 |
+| root   | ::1       |
+|        | localhost |
+| root   | localhost |
+| wpuser | localhost |
+|        | web01     |
+| root   | web01     |
++--------+-----------+
+7 rows in set (0.00 sec)
+
+mysql> show grants for wpuser@'localhost';
++---------------------------------------------------------------------------------------------------------------+
+| Grants for wpuser@localhost                                                                                   |
++---------------------------------------------------------------------------------------------------------------+
+| GRANT USAGE ON *.* TO 'wpuser'@'localhost' IDENTIFIED BY PASSWORD '*6BB4837EB74329105EE4568DDA7DC67ED2CA2AD9' |
+| GRANT ALL PRIVILEGES ON `wordpress`.* TO 'wpuser'@'localhost'                                                 |
++---------------------------------------------------------------------------------------------------------------+
+2 rows in set (0.00 sec)
+#查看wpuser授权信息
+
+mysql> flush privileges;
+Query OK, 0 rows affected (0.55 sec)
+#刷新，让权限生效
+
+mysql> quit
+
+
+调整nginx配置文件,增加主页信息
+
+[root@web01 ~]# cd /application/nginx/conf/extra/
+[root@web01 extra]# vim www.conf
+	server {
+		listen       80;
+		server_name  www.gaoqichen.com gaoqichen.com;
+		access_log  logs/www_access.log  main;
+		location / {
+			root   	html/www/wordpress;
+			index  	index.php index.html index.htm;
+        }
+		location ~ .*\.(php|php5)?$ {
+			root   	html/www/wordpress;
+			fastcgi_pass   	127.0.0.1:9000;
+			fastcgi_index  	index.php;
+			include   	fastcgi.conf;
+		}
+	}
+
+[root@web01 extra]# /application/nginx/sbin/nginx -t
+nginx: the configuration file /application/nginx-1.12.2//conf/nginx.conf syntax is ok
+nginx: configuration file /application/nginx-1.12.2//conf/nginx.conf test is successful
+[root@web01 extra]# /application/nginx/sbin/nginx -s reload
+
+
+下载wordpress，并解压缩到/application/nginx/html/www
+
+[root@web01 www]# chown -R www.www wordpress
+
+测试网页访问
+
+
+
+分离MySQL
+
+见MySQL部分
+
+
+
+分离附件到nfs
+
+1.	附件目录为：/application/nginx/html/www/wordpress/wp-content/uploads/
+
+2.	nfs上添加用户www，要使用相同的uid
+useradd -u 501 www
+
+3.	修改配置文件
+vim /etc/exports
+/data 172.16.1.0/24(rw,sync,all_squash,anonuid=501,anongid=501)
+
+4.	重启nfs
+/etc/init.d/nfs reload
+
+5.	源服务器，检查nfs
+rpm -qa rpcbind nfs-utils
+showmount -e 172.16.1.31
+echo "/etc/init.d/rpcbind start" >>/etc/rc.local
+
+6.	源服务器内附件先移动走
+mv  /application/nginx/html/www/wordpress/wp-content/uploads/2018/ /tmp/
+
+7.	nfs服务器创建/data/wordpress
+chown -R www.www /data
+
+8.	挂载
+mount -t nfs 172.16.1.31:/data/wordpress /application/nginx/html/www/wordpress/wp-content/uploads/
+
+9.	检查挂载
+df -h
+
+10.	开机自动挂载
+echo "mount -t nfs 172.16.1.31:/data/wordpress /application/nginx/html/www/wordpress/wp-content/uploads/" >>/etc/rc.local
+
+11.	源文件复制回来
+cp -a /tmp/2018/ /application/nginx/html/www/wordpress/wp-content/uploads/
+
+12.	检查属主是否为www
+
+
+
+
+
+

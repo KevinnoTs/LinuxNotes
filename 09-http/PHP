@@ -1,0 +1,159 @@
+
+[root@web01 ~]# rpm -qa zlib-devel libxml2-devel libjpeg-devel libjpeg-turbo-devel libiconv-devel freetype-devel libpng-devel gd-devel libcurl-devel libxslt-devel
+#php运行依赖基础库
+
+[root@web01 ~]# yum install -y zlib-devel libxml2-devel libjpeg-devel libjpeg-turbo-devel libiconv-devel
+[root@web01 ~]# yum install -y freetype-devel libpng-devel gd-devel libcurl-devel libxslt-devel
+
+libiconv-devel需要编译安装，下载地址：
+http://ftp.gnu.org/pub/gnu/libiconv/
+
+wget http://ftp.gnu.org/pub/gnu/libiconv/libiconv-1.15.tar.gz
+tar -zxvf libiconv-1.15.tar.gz
+cd libiconv-1.15
+./configure --prefix=/usr/local/libiconv
+make && make install
+
+[root@web01 ~]# yum install -y libmcrypt-devel
+[root@web01 ~]# yum install -y mhash
+[root@web01 ~]# yum install -y mcrypt
+#一些可选相关扩展库
+
+[root@web01 tools]# tar xf php-5.6.38.tar.gz
+[root@web01 tools]# cd php-5.6.38
+
+[root@web01 php-5.6.38]# ./configure \
+--prefix=/application/php-5.6.38 \
+--with-mysql=/application/mysql \
+--with-pdo-mysql=mysqlnd \
+--with-fpm-user=www \
+--with-fpm-group=www \
+--with-curl \
+--with-freetype-dir \
+--with-gd \
+--with-iconv-dir=/usr/local/libiconv \
+--with-jpeg-dir \
+--with-libxml-dir=/usr \
+--with-mcrypt \
+--with-mhash \
+--with-openssl \
+--with-png-dir \
+--with-xmlrpc \
+--with-xsl \
+--with-zlib \
+--disable-rpath \
+--enable-bcmath \
+--enable-fpm \
+--enable-ftp \
+--enable-gd-native-ttf \
+--enable-inline-optimization \
+--enable-mbregex \
+--enable-mbstring \
+--enable-opcache=no \
+--enable-pcntl \
+--enable-shmop \
+--enable-short-tags \
+--enable-sockets \
+--enable-soap \
+--enable-static \
+--enable-sysvsem \
+--enable-xml
+
+## 如果机器没有安装mysql，使用 --with-mysql=mysqlnd 替代 --with-mysql=/application/mysql
+#### --enable-mysqlnd \
+#### --with-pdo-mysql=mysqlnd \
+#### --with-mysqli=mysqlnd
+## 用户 --with-fpm-user=www 和组 --with-fpm-group=www 与nginx保持一致，以免出现文件权限问题
+## --enable-fpm 激活PHP-FPM服务，即fastcgi方式运行php服务
+
+
+[root@web01 php-5.6.38]# ln -s /application/mysql/lib/libmysqlclient.so.18 /usr/lib64/
+[root@web01 php-5.6.38]# ls -lh /usr/lib64/libmysql*
+lrwxrwxrwx 1 root root 43 Sep 19 12:17 /usr/lib64/libmysqlclient.so.18 -> /application/mysql/lib/libmysqlclient.so.18
+
+[root@web01 php-5.6.38]# touch ext/phar/phar.phar
+
+[root@web01 php-5.6.38]# make
+Build complete.
+Don't forget to run 'make test'.
+[root@web01 php]# echo $?
+0
+[root@web01 php-5.6.38]# make install
+
+[root@web01 php-5.6.38]# cp /home/ks/tools/php-5.6.38/php.ini-production /application/php/lib/php.ini
+#在安装文件中拷贝php配置文件（生产环境）到php安装目录的lib目录下，重命名为php.ini
+
+[root@web01 php-5.6.38]# cd /application/
+[root@web01 application]# chown -R www.www /application/php-5.6.38/
+#设置权限
+[root@web01 application]# ln -s /application/php-5.6.38/ /application/php
+#创建软链接，php版本升级后需要从新创建
+[root@web01 application]# ls -lh
+......
+lrwxrwxrwx  1 root  root    24 Sep 19 12:11 php -> /application/php-5.6.38/
+drwxr-xr-x 17  1000  1000 4.0K Sep 19 11:59 php-5.6.38
+
+[root@web01 php-5.6.38]# cd /application/php/etc/
+[root@web01 etc]# ls
+pear.conf  php-fpm.conf.default
+[root@web01 etc]# cp php-fpm.conf.default php-fpm.conf
+[root@web01 etc]# ll
+total 52
+-rw-r--r-- 1 www  www   1311 Sep 19 12:47 pear.conf
+-rw-r--r-- 1 root root 23109 Sep 19 13:01 php-fpm.conf
+-rw-r--r-- 1 www  www  23109 Sep 19 12:47 php-fpm.conf.default
+#创建fastcgi配置文件
+
+[root@web01 etc]# /application/php/sbin/php-fpm
+#启动php-fpm
+[root@web01 etc]# lsof -i :9000
+COMMAND   PID USER   FD   TYPE DEVICE SIZE/OFF NODE NAME
+php-fpm 31529 root    7u  IPv4 151219      0t0  TCP localhost:cslistener (LISTEN)
+php-fpm 31530  www    0u  IPv4 151219      0t0  TCP localhost:cslistener (LISTEN)
+php-fpm 31531  www    0u  IPv4 151219      0t0  TCP localhost:cslistener (LISTEN)
+#查看9000端口
+
+[root@web01 etc]# ps -ef | grep php-fpm | grep -v grep
+root      31529      1  0 13:02 ?        00:00:00 php-fpm: master process (/application/php/etc/php-fpm.conf)
+www       31530  31529  0 13:02 ?        00:00:00 php-fpm: pool www
+www       31531  31529  0 13:02 ?        00:00:00 php-fpm: pool www
+#查看进程
+
+整合nginx+php
+nginx配置文件增加location
+
+	location ~ .*\.(php|php5)?$ {
+	            root   html/www;
+	            fastcgi_pass   127.0.0.1:9000;
+	            fastcgi_index  index.php;
+	            include   fastcgi.conf;
+	        }
+
+创建一个页面测试test_info.php
+
+	<?php phpinfo(); ?>
+
+
+测试数据库，创建test_mysql.php
+	<?php
+
+		$link_id=mysql_connect('localhost','root','123456') or mysql_error();
+		if($link_id){
+			echo "MySQL successful by KevinnoTs";
+		}else{
+			echo mysql_error();
+		}
+
+	?>
+
+
+
+
+
+
+
+
+
+
+
+

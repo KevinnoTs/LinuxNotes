@@ -1,0 +1,255 @@
+SSH
+	是Secure SHell protocol的缩写，在传输数据的时候对数据进行加密
+	功能：
+		远程连接
+		SFTP服务器（安全的FTP）
+		远程拷贝命令scp
+
+	认真类型：
+		口令
+		密钥
+
+	配置文件 /etc/ssh/sshd_config
+		Port 					端口，默认22
+		PermitEmptyPasswords	是否允许空密码登录，默认no
+		PermitRootLogin			是否允许root登录，默认yes
+		UseDNS					是否允许反向解析，默认yes
+
+	配置文件建议优化：
+		Port 52113
+		ListenAddress 172.16.1.61:52113
+		PermitRootLogin no
+		PermitEmptyPasswords no
+		GSSAPIAuthentication no
+		UseDNS no
+
+	优化可见脚本：ssh_conf_opt.sh
+
+	安全建议：
+		尽量使用密钥，不用密码
+		防火墙限制，指定源IP限制
+		开启SSH只监听内网IP ListenAddress 参数
+		服务器尽量不给外网IP
+
+SSH基本语法
+	-p 	端口，如-p22
+	-t 	打开终端
+	@ 	前面用户，后面ip，如root@10.0.0.99
+
+	[root@m01 ~]# ssh -p52113 ks@10.0.0.99
+	The authenticity of host '[10.0.0.99]:52113 ([10.0.0.99]:52113)' can't be established.
+	RSA key fingerprint is d7:b7:f6:c0:4f:5f:0f:06:f9:bc:db:56:03:ad:ca:eb.
+	Are you sure you want to continue connecting (yes/no)? yes
+	Warning: Permanently added '[10.0.0.99]:52113' (RSA) to the list of known hosts.
+	ks@10.0.0.99's password:
+	Last login: Fri Sep  7 22:15:48 2018 from 10.0.0.180
+	[ks@localhost ~]$
+
+	[root@m01 ~]# ssh -p52113 ks@10.0.0.41 /sbin/ifconfig eth0
+	ks@10.0.0.41's password:
+	eth0      Link encap:Ethernet  HWaddr 00:0C:29:0A:0C:F2
+	          inet addr:10.0.0.41  Bcast:10.0.0.255  Mask:255.255.255.0
+	          inet6 addr: fe80::20c:29ff:fe0a:cf2/64 Scope:Link
+	          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+	          RX packets:960 errors:0 dropped:0 overruns:0 frame:0
+	          TX packets:74 errors:0 dropped:0 overruns:0 carrier:0
+	          collisions:0 txqueuelen:1000
+	          RX bytes:63728 (62.2 KiB)  TX bytes:10802 (10.5 KiB)
+	[root@m01 ~]#
+
+scp Secure CoPy（remote file copy program）
+	每次都是增量拷贝，加密远程拷贝
+	选项：
+		-P 改变端口
+		-r 拷贝目录
+		-p 保持属性
+		-l 限速
+
+	推：Push
+		[root@m01 ~]# scp -P52113 /server/scripts/ssh_conf_opt.sh ks@172.16.1.41:~
+		ks@172.16.1.41's password:
+		ssh_conf_opt.sh                                                 100% 1863     1.8KB/s   00:00
+		#scp远程推文件，注意端口用大写-P，用户@主机:目录
+	拉：Pull
+		[root@m01 ~]# scp -P52113 -rp ks@172.16.1.41:/backup/check_md5_result/ /backup
+		ks@172.16.1.41's password:
+		2018-09-01_Sat.log                                              100%   68     0.1KB/s   00:00
+		......
+		[root@m01 ~]# ls -lh /backup/check_md5_result/
+		......
+		-rw-r--r-- 1 root root  68 Sep  1 00:00 2018-09-01_Sat.log
+		......
+		#scp远程拉文件，-r为文件夹，-p保持原属性
+
+sftp 基于ssh的加密传输
+
+	登录：客户端登录服务端
+	sftp [-oPort=port] user@host
+	[ks@nfs01 ~]$ sftp -oPort=52113 ks@192.168.31.61
+	Connecting to 192.168.31.61...
+	ks@192.168.31.61's password:
+	sftp>
+	#登录61这台计算机，端口为52113，用户名为ks
+
+	传输：
+	put 推
+		put filename [remote-path]
+		默认传到服务端被登录用户的家目录
+	get 拉
+		get filename [remote-path]
+		默认下载到客户端登录前的目录
+
+SSH连接：
+	基于密码
+
+	基于密钥
+
+
+批量管理（进阶自学saltstack）
+	1、	创建用户及密码（所有机器统一创建一个用户，这样方便设置权限与管理）
+		useradd cc
+		echo 123456 | passwd --stdin cc
+		id cc
+		su - cc
+	2、	创建密钥对（管理机）
+		ssh-keygen -t dsa
+		#需要按很多回车
+		#一键可以 ssh-keygen -t dsa -P '' -f ~/.ssh/id_dsa >/dev/null 2>&1
+		#也可以 echo -e "\n" | ssh-keygen -t dsa -N ""
+	3、	分发公钥
+		ssh-copy-id -i ~/.ssh/id_dsa.pub cc@172.16.1.99
+		#默认22端口可直接分发
+		ssh-copy-id -i ~/.ssh/id_dsa.pub "-p 52113 cc@172.16.1.41"
+		#修改过ssh端口的使用上面命令指定ssh端口
+			非交互式分发
+			yum install -y expect
+			vim ～/scripts/expect_copy_ssh-key.exp
+				#!/usr/bin/expect
+				if { $argc != 1} {
+					send_user "Usage: expect expect_copy_ssh-key.exp host \n"
+					exit
+				}
+				#define var
+				set host [lindex $argv 0]
+				set password "111111"
+
+				spawn ssh-copy-id -i ~/.ssh/id_dsa.pub "-p 52113 ks@$host"
+				set timeout 60
+				expect {
+					-timeout 20
+					"yes/no"	{send "yes\r";exp_continue}
+					"*password"	{send "$password\r"}
+					timeout		{puts "expect connect timeout...";return}
+				}
+				expect eof
+				exit -onexit {
+					send_user "Bye...\n"
+				}
+			vim ～/scripts/dis_ssh-key.sh
+			#!/bin/sh
+			. /etc/init.d/functions
+			for host in 8 31 41
+			do
+				expetc expect_copy_ssh-key.exp 172.16.1.$host >/dev/null 2>&1
+				if [ $? -eq 0 ];then
+					action "172.16.1.$host dis pub" /bin/true
+				else
+					action "172.16.1.$host dis pub" /bin/false
+				fi
+			done
+
+	4、	测试
+		ssh -p52113 cc@172.16.1.41 /sbin/ifconfig eth0
+		#不需要输入密码即可查看对方ip即表示连接成功
+	5、	远程执行没有权限时（以复制为例）
+			a.	在客户机上编辑visudoer，给统一用户提权（添加一条记录）
+				cc ALL=(ALL) NOPASSWD: /user/bin/rsync
+			b.	将文件临时复制到家目录
+				scp -p52113 hosts cc@172.16.1.41:~
+				#hosts文件为管理机备份/etc/hosts文件，建议不直接使用系统文件
+				rsync -avz hosts -e 'ssh -p 52113' cc@172.16.1.41:~
+				#使用rsync通过ssh通道模式实现批量增量分发文件
+			c.	ssh执行复制命令，使用-t选项开启终端后使用sudo提权
+				ssh -p52113 -t cc@172.16.1.41 sudo rsync ~/hosts /etc/hosts
+	6.	编辑shell脚本批量管理其他计算机
+			a.	执行简单命令：
+				vim scripts/exec_cmd.sh
+				#新建一个脚本
+					#!/bin/sh
+					### Executive command
+					### Powered by KevinnoTs
+					### 2018-09-11
+					# export functions and path
+					. /etc/init.d/functions
+
+					if [ $# -ne 1 ];then
+					  echo "Usage: /bin/sh $0 COMMANDS"
+					  exit 1
+					fi
+
+					for n in 8 31 41
+					do
+					  echo "==========172.16.1.$n=========="
+					  ssh -p52113 ks@172.16.1.$n "$1"
+					done
+				[ks@m01 ~]$ sh scripts/exec_cmd.sh
+				Usage: /bin/sh scripts/exec_cmd.sh COMMANDS
+				#不带参数执行该脚本报错
+				[ks@m01 ~]$ sh scripts/exec_cmd.sh "ifconfig eth0"
+				==========172.16.1.8==========
+				bash: ifconfig: command not found
+				==========172.16.1.31==========
+				bash: ifconfig: command not found
+				==========172.16.1.41==========
+				bash: ifconfig: command not found
+				#执行命令尽量使用全路径
+				[ks@m01 ~]$ sh scripts/exec_cmd.sh "cat /etc/redhat-release"
+				==========172.16.1.8==========
+				CentOS release 6.10 (Final)
+				==========172.16.1.31==========
+				CentOS release 6.10 (Final)
+				==========172.16.1.41==========
+				CentOS release 6.10 (Final)
+				#查看其他客户机计算机版本
+			b.	复制文件（包括复制替换系统文件）
+				vim scripts/copy_file.sh
+				#新建脚本
+					#!/bin/sh
+					### Copy file to all
+					### Powered by KevinnoTs
+					### 2018-09-11
+					# export functions and path
+					. /etc/init.d/functions
+
+					if [ $# -ne 2 ];then
+					  echo "Usage: /bin/sh $0 FILE DEST"
+					  exit 1
+					fi
+					if [ ! -f "~/$1" ];then
+					  echo "/home/ks/$1 : No such file"
+					  exit 1
+					fi
+					for n in 8 31 41
+					do
+					  rsync -avz ~/$1 -e 'ssh -p 52113' ks@172.16.1.${n}:~ >/dev/null 2>&1 &&\
+					  ssh -p52113 -t ks@172.16.1.$n sudo rsync ~/$1 $2 >/dev/null 2>&1
+					  if [ $? -eq 0 ];then
+					    action "COPY `pwd`/$1 TO ${2} @ 172.16.1.${n}" /bin/true
+					  else
+					    action "COPY `pwd`/$1 TO ${2} @ 172.16.1.${n}" /bin/false
+					  fi
+					done
+				[ks@m01 ~]$ /bin/sh scripts/copy_file.sh 1
+				Usage: /bin/sh scripts/copy_file.sh FILE DEST
+				#该脚本流程仅支持从当前ks家目录拷贝到客户机家目录，再将客户机家目录内的该文件复制到指定目录
+				[ks@m01 ~]$ /bin/sh scripts/copy_file.sh 1 /tmp/
+				/home/ks/1 : No such file
+				#拷贝文件必须放在ks家目录中
+				[ks@m01 ~]$ /bin/sh scripts/copy_file.sh test.k /tmp/
+				COPY /home/ks/test.k TO /tmp/ @ 172.16.1.8                 [  OK  ]
+				COPY /home/ks/test.k TO /tmp/ @ 172.16.1.31                [  OK  ]
+				COPY /home/ks/test.k TO /tmp/ @ 172.16.1.41                [  OK  ]
+				#输出结果调用/etc/init.d/functions中的/bin/true和/bin/false
+
+
+

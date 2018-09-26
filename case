@@ -279,7 +279,7 @@ root密码丢失找回
 					## shell start ##
 					cd / &&\
 					# Check md5 and record these result in file #
-					find $BACKUP_PATH -type f -name "*${BACKUP_DATE}.md5" | xargs md5sum -c >>$BACKUP_PATH/check_md5_result/${BACKUP_DATE}.log &&\
+					find $BACKUP_PATH -type f -name "*${BACKUP_DATE}.md5" | xargs md5sum -c >>$BACKUP_PATH/check_md5_result/${BACKUP_DATE}.log 2>&1 &&\
 					# Delete the file which is 180 days ago #
 					find /backup -type f ! -name "*_Sat.*" -mtime +180 | xargs rm -f
 			c.	编写脚本，负责发送邮件告知管理员检验结果

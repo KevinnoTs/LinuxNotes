@@ -1,0 +1,14 @@
+常用来提供静态web服务的软件
+Apache：中小型web服务主流，老大哥
+Nginx：大型网站web服务主流，曾经web服务中的初生牛犊，现已长大。
+	分支tengine（hengine.taobao.org）目前飞速发展
+Lighttpd：不温不火的优秀的web软件，静态解析效率很高，贴吧、豆瓣等众多网站都使用过lighttpd
+
+常用动态服务的软件
+PHP（fastcgi）：大中小型都会使用，如果PHP配合Nginx解析动态程序，测需要Fastcgi守护进程模式提供服务
+Tomcat：中小企业动态web服务主流，多与Java配合（如jsp、do）
+Resin：大型动态web服务主流，多与Java配合（如jsp、do）
+IIS：微软Windows下的web服务软件（asp、aspx）
+
+Usage Statistics and Market Share of Web Servers for Websites
+https://w3techs.com/technologies/overview/web_server/all

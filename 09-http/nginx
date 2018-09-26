@@ -1,0 +1,365 @@
+Nginx 是一个开源的、支持高性能、高并发的web服务和代理服务软件
+
+	Nginx不但是一个优秀的web服务软件，还具有反向代理负载均衡功能和缓存服务功能
+
+
+web服务器应用场景
+
+	1. 运行html、js、css、小图片等静态数据（类似lighttpd）
+	2. 结合fastcgi运行php等动态程序（常用fastcgi_pass方式）
+	3. 结合tomcat/resin等支持java等动态程序（常用proxy_pass方式）
+
+
+nginx安装
+
+1.	安装nginx所需pcre库
+	pcre（Perl Compatible Regular Expressions）
+	安装pcre是为乐使nginx支持具备URI重写功能的rewrite模块（伪静态）
+
+	[root@web01 ~]# yum install pcre pcre-devel -y
+	[root@web01 ~]# rpm -qa pcre pcre-devel
+	pcre-devel-7.8-7.el6.x86_64
+	pcre-7.8-7.el6.x86_64
+
+	检查是否存在openssl-devel，没有通过yum安装
+
+	[root@web01 nginx-1.12.2]# yum install openssl-devel -y
+	[root@web01 nginx-1.12.2]# rpm -qa openssl-devel
+	openssl-devel-1.0.1e-57.el6.x86_64
+
+2.	安装nginx
+
+下载：
+	[root@web01 tools]# pwd
+	/home/ks/tools
+	#统一下载路径
+	[root@web01 tools]# wget -q http://nginx.org/download/nginx-1.12.2.tar.gz
+	#下载稳定版安装包
+	[root@web01 tools]# ls -lh
+	total 960K
+	-rw-r--r-- 1 root root 959K Oct 17  2017 nginx-1.12.2.tar.gz
+	#查看大小
+	[root@web01 tools]# tar xf nginx-1.12.2.tar.gz
+	#解压缩
+	[root@web01 tools]# cd nginx-1.12.2
+	[root@web01 nginx-1.12.2]# ls
+	auto  CHANGES  CHANGES.ru  conf  configure  contrib  html  LICENSE  man  README  src
+
+创建用户：
+	[root@web01 nginx-1.12.2]# useradd www -s /sbin/nologin -M
+	[root@web01 nginx-1.12.2]# id www
+	uid=501(www) gid=501(www) groups=501(www)
+
+配置及安装：
+	[root@web01 nginx-1.12.2]# ./configure --help
+	#查看配置帮助
+	[root@web01 nginx-1.12.2]# ./configure --user=www --group=www --with-http_stub_status_module --with-http_ssl_module --prefix=/application/nginx-1.12.2/
+	#  设置配置文件
+	## --prefix=PATH 设置安装路径
+	## --user=USER --group=GROUP 设置进程用户及属组
+	## --with-http_ssl_module 激活ssl功能
+	## --with-http_stub_status_module 激活状态信息
+	## nginx大部分模块功能都会默认编译到软件中，不需要单独指定编译参数
+	......
+	#过程省略
+	[root@web01 nginx-1.12.2]# echo $?
+	0
+	#没有报错说明成功了
+
+	[root@web01 nginx-1.12.2]# make
+	#编译
+	[root@web01 nginx-1.12.2]# echo $?
+	0
+
+	[root@web01 nginx-1.12.2]# make install
+	#安装
+	[root@web01 nginx-1.12.2]# echo $?
+	0
+
+	[root@web01 application]# ln -s /application/nginx-1.12.2/ /application/nginx
+	[root@web01 application]# ll
+	total 4
+	lrwxrwxrwx 1 root root   26 Sep 15 02:17 nginx -> /application/nginx-1.12.2/
+	drwxr-xr-x 6 root root 4096 Sep 15 02:16 nginx-1.12.2
+	#创建软链接，可以理解为快捷方式。以后更新后只需要修改软链接，程序中依旧使用软链接路径调用新版本软件
+
+启动及测试：
+	[root@web01 application]# /application/nginx/sbin/nginx -t
+	nginx: the configuration file /application/nginx-1.12.2//conf/nginx.conf syntax is ok
+	nginx: configuration file /application/nginx-1.12.2//conf/nginx.conf test is successful
+	#检查程序运行语法
+	[root@web01 application]# /application/nginx/sbin/nginx -V
+	nginx version: nginx/1.12.2
+	built by gcc 4.4.7 20120313 (Red Hat 4.4.7-23) (GCC)
+	built with OpenSSL 1.0.1e-fips 11 Feb 2013
+	TLS SNI support enabled
+	configure arguments: --user=www --group=www --with-http_stub_status_module --with-http_ssl_module --prefix=/application/nginx-1.12.2/
+	#查看安装版本及配置文件
+	[root@web01 application]# /application/nginx/sbin/nginx
+	#启动nginx
+	[root@web01 application]# netstat -lntup | grep 80
+	tcp 		0 		0 0.0.0.0:80 		0.0.0.0:* 		LISTEN 		5188/nginx
+	[root@web01 application]# lsof -i :80
+	COMMAND  PID USER   FD   TYPE DEVICE SIZE/OFF NODE NAME
+	nginx   5188 root    6u  IPv4  23036      0t0  TCP *:http (LISTEN)
+	nginx   5189  www    6u  IPv4  23036      0t0  TCP *:http (LISTEN)
+	#查看服务运行状态
+
+	打开浏览器输入服务器ip地址，查看是否成功显示nginx欢迎提示
+
+	[root@web01 application]# cat /application/nginx/logs/error.log
+	#查看错误日志
+
+yum安装方法：
+	wget -q http://mirrors.ustc.edu.cn/fedora/epel/6/x86_64/epel-release-6-8.noarch.rpm
+	rpm -ivh epel-release-6-8.noarch.rpm
+	yum install nginx -y
+	#yum安装不能选择版本及安装路径
+
+客户端排错：
+	1. ping 192.168.31.8 排除物理线路问题
+	2. telnet 192.168.31.8 排除防火墙等的影响
+	3. curl -I 192.168.31.8 (wget 192.168.31.8) 模拟用户访问，排除http服务自身问题
+
+
+配置文件
+
+	为了方便，删除多余注释及空行
+	[root@web01 conf]# egrep -v "^$|#" nginx.conf.default > nginx.conf
+	#去掉配置文件中的注释及空行
+	[root@web01 conf]# /application/nginx/sbin/nginx -t
+	#修改配置文件后检查语法
+	[root@web01 conf]# /application/nginx/sbin/nginx -s reload
+	#优雅重启
+
+	配置文件详解：
+	  1 worker_processes  1;								#main区块，核心功能模块，worker进程数量
+	  2 events { 											#events区块，核心功能模块
+	  3     worker_connections  1024;						#每个worker支持最大连接数
+	  4 }
+	  5 http { 												#http区块
+	  6     include       mime.types;						#支持的媒体类型库文件
+	  7     default_type  application/octet-stream;			#默认媒体类型
+	  8     sendfile        on;								#开启高效传输模式
+	  9     keepalive_timeout  65; 							#连接超时
+	 10     server { 										#server区块，一个网站就是一个server
+	 11         listen       80; 							#端口，每个server必须都有
+	 12         server_name  localhost; 					#域名，每隔server必须都有
+	 13         location / { 								#多个location，"="优先级最高，优先匹配
+	 14             root   html;
+	 15             index  index.html index.htm;
+	 16         }
+	 17         error_page   500 502 503 504  /50x.html;
+	 18         location = /50x.html {
+	 19             root   html;
+	 20         }
+
+	 21     }
+	 22 }
+
+	 别名：
+	 server_name www.gaoqichen.com gaoqichen.com
+	 #实现访问www.gaoqichen.com与gaoqichen.com为相同虚拟主机
+	 #该功能常用在不通服务器使用不通别名，如www1.gaoqichen.com、www2.gaoqichen.com，方便监控各台服务器状态
+
+
+模块
+
+	Core functionality 核心模块，对应主配置文件的main区块和events区块
+
+	ngx_http_core_module 包括一些核心的http参数设置，对应nginx的配置为http区域部分
+	ngx_http_access_module 访问控制模块，用来控制网站用户对nginx的访问
+	ngx_http_gzip_module 压缩模块，对nginx返回的数据压缩，属于性能优化模块
+	ngx_http_fastcgi_module fastcgi模块，和动态应用相关的模块，例如php
+	ngx_http_proxy_module proxy代理模块
+	ngx_http_upstream_conf_module 负载均衡模块，可实现网站的负载均衡功能及节点的健康检查
+	ngx_http_rewrite_module URL地址重写模块
+	ngx_http_limit_conn_module 限制用户并发连接数及请求数模块
+	ngx_http_limit_req_module 根据定义的key限制nginx请求过程的速率
+	ngx_http_log_module 访问日志模块，以指定的格式记录nginx客户访问日志等信息
+	ngx_http_auth_basic_module web认证模块，设置web用户通过账号密码访问nginx
+	ngx_http_ssl_module ssl模块，用于加密的http连接，如https
+	ngx_http_stub_status_module 记录nginx基本访问状态信息等的模块
+
+
+目录结构
+
+	/application/nginx
+	├── client_body_temp [error opening dir]	临时文件目录
+	├── conf 									配置文件目录
+	│   ├── fastcgi.conf 							fastcgi配置文件
+	│   ├── fastcgi.conf.default
+	│   ├── fastcgi_params 							fastcgi配置文件
+	│   ├── fastcgi_params.default
+	│   ├── koi-utf
+	│   ├── koi-win
+	│   ├── mime.types 								媒体类型
+	│   ├── mime.types.default
+	│   ├── nginx.conf 								nginx主配置文件
+	│   ├── nginx.conf.default
+	│   ├── scgi_params
+	│   ├── scgi_params.default
+	│   ├── uwsgi_params
+	│   ├── uwsgi_params.default
+	│   └── win-utf
+	├── fastcgi_temp [error opening dir]		fastcgi临时文件目录
+	├── html 									站点目录
+	│   ├── 50x.html 								错误页面，如502等
+	│   └── index.html 								默认首页，默认首页文件可在nginx.conf中修改
+	├── logs 									日志文件
+	│   ├── access.log 								访问日志，使用tail -f access.log
+	│   ├── error.log 								错误日志
+	│   └── nginx.pid 								nginx进程号
+	├── proxy_temp [error opening dir] 			代理临时文件目录
+	├── sbin 									主程序目录
+	│   └── nginx 									nginx主程序
+	├── scgi_temp [error opening dir] 			scgi临时文件目录
+	└── uwsgi_temp [error opening dir] 			uwsgi临时文件目录
+
+
+虚拟主机
+
+	虚拟主机概念：独立的站点，拥有独立的ip或端口，可以独立提供服务的，在nginx配置文件中使用一个server{}标签标示一个虚拟主机
+
+	虚拟主机类型：
+		基于域名的虚拟主机
+		基于端口的虚拟主机
+		基于IP的虚拟主机
+
+
+nginx status
+
+	ngx_http_stub_status_module
+		该模块，主要功能是记录nginx的基本访问状态信息，如连接数等信息，想要使用该模块，编译时需要添加 http_stub_status_moduls 支持
+
+	想使用该功能，需要修改配置文件，需要添加一个server{}区块
+	server {
+		listen       80;
+		server_name  status.gaoqichen.com;
+		location / {
+			stub_status on;
+			access_log off;
+			allow 192.168.31.0/24;
+			deny all;
+		}
+	}
+	#allow表示允许访问IP段
+	#deny表示拒绝访问IP段
+
+	浏览器打开status.gaoqichen.com结果显示如下：
+	Active connections: 1
+    	#表示正在处理的连接数
+	server accepts handled requests
+	 11 11 27
+		#第一位表示一共处理了多少个连接（server）；
+		#第二位表示一共处理了多少次握手（accepts）；
+		#请求丢失数=握手数-连接数；
+		#第三位表示一共处理了多少次请求（handled requests）
+	Reading: 0 Writing: 1 Waiting: 0
+		#Reading为读取到客户端的header信息数
+		#Writing为返回给客户端的header信息数
+		#Waiting为已经处理完正在等待下一次请求指令的驻留连接数
+		#在开启keep-alive的情况下，Waiting的值等于active-reading-writing
+
+
+错误日志 error_log
+
+	error_log 语法格式
+	error_log		file 		level
+	关键字 			日志文件 		错误日志级别[debug|info|notice|warn|error|crit|alert|emerg]
+		错误日志级别越低，信息越多，级别越高，信息越少
+		生产场景一般是warn|error|crit这三个级别，尽量不要设置info或更低级别，会带来大量磁盘I/O
+	error_log默认值为：
+		#default: error_log logs/error.log error;
+	可以放置的标签段为：
+		#context: main, http, server, location;
+
+
+访问日志 access_log
+
+	网站提供分析用户浏览行为由 ngx_http_log_module 模块负责
+	参数：
+		log_format	用来定义记录日志的格式
+		access_log 	用来定义日志文件路径及使用的和中日志格式记录
+	默认值（写在http标签段内）：
+	#log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
+	#                  '$status $body_bytes_sent "$http_referer" '
+	#                  '"$http_user_agent" "$http_x_forwarded_for"';
+	#access_log  logs/access.log  main;
+
+	参数说明：
+		$remote_addr 记录访问网站的客户端地址
+		$remote_user 远程客户端用户名称
+		$time_local 访问的时间与时区
+		$request 用户的http请求起始行信息
+		$status http状态码，记录请求返回的状态，如：200、404、301等
+		$body_bytes_sent 服务器发给客户端的响应body字节数
+		$http_referer 记录此次请求是从哪个连接访问过来的，可以根据referer进行防盗链设置
+		$http_user_agent 记录客户端访问信息，如：浏览器，手机客户端等
+		$http_x_forwarded_for 当客户端使用代理时，记录客户端地址，代理服务器上也要进行x_forwarded_for的设置
+
+	缓存：
+	access_log  logs/access.log  main  gzip  buffer=32k  flush=5s;
+
+	日志切割：
+		a. 编写脚本：
+		[root@web01 logs]# cat /server/scripts/cut_nginx_log.sh
+		/bin/mv /application/nginx/logs/www_access.log /application/nginx/logs/www_access_$(date +%F).log
+		/application/nginx/sbin/nginx -s reload
+		#切割前一天的日志
+		b. 定时任务每天0点执行，并结合备份
+
+
+location
+	location [=|~|~*|^~] uri {
+		......
+	}
+	= 	等于
+	~	区分大小写
+	~*	不区分大小写
+	^~	不做正则检查
+	!	取反
+	举个例子：
+		location = /
+			精确匹配只有域名的情况
+		location /
+			匹配域名后为/index.html的情况
+		location /documents/
+			匹配域名后面加/docunment/的情况
+		location ^~ /images/
+			匹配域名后面加/images/的情况（不包含正则）
+		location ~* \.(gif|jpg|jpeg)$
+			匹配以图片后缀结尾的地址
+	优先级：
+	=		最先		精确匹配
+	^~		其次		无正则匹配
+	~*		再次 	正则匹配
+	/xxx/	再其次 	路径匹配
+	/		最次 	默认匹配
+
+
+rewrite url地址重写（伪静态）
+
+	语法：rewrite regex replacement [flag];
+	默认：none
+	位置：server、location、if
+
+	举个例子：
+		rewrite ^/(.*) http://www.baidu.com/$1 permanent;
+		#永久跳转到百度上，$1为第一个括号内的匹配项，后项引用
+
+	结尾标记：
+		last 		本条规则匹配完成后，继续向下匹配新的location URI规则
+		break 		本条规则匹配完成后即终止，不再匹配后面的任何规则
+		redirect 	返回302临时重定向，浏览器地址栏会显示跳转后的URL地址
+		permanent 	返回301永久重定向，浏览器地址栏会显示跳转后的URL地址
+
+
+nginx访问认证
+
+	location / {
+	    auth_basic           "closed site";
+	    auth_basic_user_file conf/htpasswd;
+	}
+
+	了解即可，官方文档：http://nginx.org/en/docs/http/ngx_http_auth_basic_module.html

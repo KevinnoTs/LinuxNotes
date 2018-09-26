@@ -1,0 +1,10 @@
+LNMP = Linux + Nginx + MySQL + Php
+
+
+CGI	通用网关接口（Common Gateway Interface），为HTTP服务器与其他上的程序服务通信交流的一种工具
+
+FastCGI 	是一个可伸缩的、高速的在HTTP服务器和动态脚本语言间通信的接口
+			采用C/S架构
+			它可以将HTTP服务器和脚本解析服务器分开
+			同时还能在脚本解析服务器上启动一个或多个脚本来解析守护进程
+

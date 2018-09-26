@@ -367,7 +367,7 @@ rsync 工作方式
 实时备份
 	实现方式：inotify实现监控目录，如有修改则调用备份命令
 
-	部署过程：
+	inotify部署过程：
 		1.	搭建rsync服务端并配置好客户端
 			a.	服务端修改配置文件 /etc/rsyncd.conf ，增加新模块，重启服务
 					[rtbak]
@@ -387,11 +387,19 @@ rsync 工作方式
 				2.6.32-754.3.5.el6.x86_64
 				#检查内核是否大于2.6.13
 				[root@nfs01 data]# ls -l /proc/sys/fs/inotify
-				total 0
-				-rw-r--r-- 1 root root 0 Sep  5 11:48 max_queued_events
-				-rw-r--r-- 1 root root 0 Sep  5 11:48 max_user_instances
-				-rw-r--r-- 1 root root 0 Sep  5 11:48 max_user_watches
-				#查看该目录，如果有这三个文件表示支持inotify
+				total 0#
+				-rw-r--r-- 1 root root 0 Sep  5 11:48 max_queued_events			#设置inotify实例事件（event）队列可容纳的事件数量。默认16384
+				-rw-r--r-- 1 root root 0 Sep  5 11:48 max_user_instances		#设置每个用户可以运行的inotifywait或inotifywatch命令的进程数。默认128
+				-rw-r--r-- 1 root root 0 Sep  5 11:48 max_user_watches			#设置inotifywait或inotifywatch命令可以监视的文件数量（单进程）。默认8192
+				#查看该目录，如果有这三个文件表示支持inotify（如果使用sersync的话不用设置，运行sersync会自动设置）
+					[root@nfs01 inotify]# echo "655350" > /proc/sys/fs/inotify/max_user_watches
+					[root@nfs01 inotify]# echo "655350" > /proc/sys/fs/inotify/max_queued_events
+					cat >>/etc/rc.local<<EOF
+					# Mod inotify tools config by KevinnoTs at 2018/09/05
+					echo "655350" > /proc/sys/fs/inotify/max_user_watches
+					echo "655350" > /proc/sys/fs/inotify/max_queued_events
+					EOF
+					#顺便调整默认参数（选做）
 			b.	安装软件包
 				[root@nfs01 data]# rpm -qa inotify-tools
 				# 检查是否安装该软件
@@ -419,13 +427,170 @@ rsync 工作方式
 				选项：
 					-m 	实时监听
 					-d 	后台运行
+					-q 	打印监听事件重要信息
 					-r 	递归
 					-e 	事件（可以定义增、删、改）
 						事件：
 							access 访问
 							modify 修改
 							attrib 属性
-							close_write 写入关闭
+							close_write 保存并关闭（创建、修改文件，不包含删除文件）
+							close_nowirte 不保存关闭
+							close 关闭
+							open 打开
+							moved_to/moved_from/move 移动
+							creat 创建
+							delete/delete_self 删除
+							unmount 卸载
+					--excludei <pattern>	排除文件或目录时，不区分大小写
+					--timefmt <fmt>			指定时间输出格式
+					--format <fmt>			打印使用指定的输出格式
+			d.	测试inotifywait
+				[root@nfs01 yum.repos.d]# inotifywait -mrq --timefmt '%y/%m/%d %H:%M' --format '%T %w%f' -e create /data
+				18/09/05 12:53 /data/06
+				18/09/05 12:53 /data/07
+			e.	实现实时同步
+
+
+
+	sersync部署过程：参考资料：https://www.osyunwei.com/archives/7447.html
+		1.	服务端配置rsync服务
+		2.	客户端安装sersync软件
+			a.	下载
+				[root@nfs01 /]# mkdir /application/
+				#为了规范软件安装目录，计划将sersync安装到/application/目录下，并调整目录结构
+				[root@nfs01 application]# wget --no-check-certificate https://raw.githubusercontent.com/orangle/sersync/master/release/sersync2.5.4_64bit_binary_stable_final.tar.gz
+				#下载sersync（感谢网友提供墙内下载地址）
+				[root@nfs01 application]# ls
+				sersync2.5.4_64bit_binary_stable_final.tar.gz
+				#查看下载成功
+				[root@nfs01 application]# tar zxvf sersync2.5.4_64bit_binary_stable_final.tar.gz
+				GNU-Linux-x86/
+				GNU-Linux-x86/sersync2
+				GNU-Linux-x86/confxml.xml
+				#解压缩
+				[root@nfs01 application]# mv GNU-Linux-x86/ sersync
+				#修改文件夹名
+				[root@nfs01 application]# cd sersync
+				[root@nfs01 sersync]# ls
+				confxml.xml  sersync2
+				[root@nfs01 sersync]# mkdir bin
+				[root@nfs01 sersync]# mkdir conf
+				[root@nfs01 sersync]# mkdir logs
+				#创建三个目录，分别规划为bin放软件，conf放配置文件，logs放日志文件
+				[root@nfs01 sersync]# mv sersync2 bin/sersync
+				#移动并改名
+				[root@nfs01 sersync]# mv confxml.xml conf/confxml.xml
+				#移动
+				[root@nfs01 sersync]# cd ..
+				[root@nfs01 application]# tree
+				.
+				├── sersync
+				│   ├── bin
+				│   │   └── sersync
+				│   ├── conf
+				│   │   └── confxml.xml
+				│   └── logs
+				└── sersync2.5.4_64bit_binary_stable_final.tar.gz
+				4 directories, 3 files
+				#查看目录结构
+				[root@nfs01 application]# mv sersync2.5.4_64bit_binary_stable_final.tar.gz ~/tools/
+				#安装包找地方存放
+			b.	配置，配置文件/application/sersync/conf/confxml.xml
+				[root@nfs01 ~]# cp /application/sersync/conf/confxml.xml{,.bak}
+				#养成好习惯，改文件前备份
+				root@nfs01 ~]# vim /application/sersync/conf/confxml.xml
+				#编辑文件，只标记需要修改部分，及可能用到的部分
+					  6     <filter start="false">
+					  7         <exclude expression="(.*)\.svn"></exclude>
+					  8         <exclude expression="(.*)\.gz"></exclude>
+					  9         <exclude expression="^info/*"></exclude>
+					 10         <exclude expression="^static/*"></exclude>
+					 11     </filter>
+					#设置排除（过滤）
+					 12     <inotify>
+					 13         <delete start="true"/>
+					 14         <createFolder start="true"/>
+					 15         <createFile start="false"/>
+					 16         <closeWrite start="true"/>
+					 17         <moveFrom start="true"/>
+					 18         <moveTo start="true"/>
+					 19         <attrib start="false"/>
+					 20         <modify start="false"/>
+					 21     </inotify>
+					#监控的事件
+					 24         <localpath watch="/data">									#同步的源，按需求改
+					 25             <remote ip="172.16.1.41" name="rtbak"/>					#目标的ip和模块，按需求改
+					 26             <!--<remote ip="192.168.8.39" name="tongbu"/>-->
+					 27             <!--<remote ip="192.168.8.40" name="tongbu"/>-->
+					 28         </localpath>
+					#传输配置
+					 29         <rsync>
+					 30             <commonParams params="-avz"/>														#rsync命令传输参数，按需求改
+					 31             <auth start="ture" users="rsync_backup" passwordfile="/etc/rsync.password"/>		#传输用户，按需修改
+					 32             <userDefinedPort start="false" port="874"/><!-- port=874 -->						#端口
+					 33             <timeout start="ture" time="100"/><!-- timeout=100 -->								#超时，建议开启
+					 34             <ssh start="false"/>
+					 35         </rsync>
+					#传输命令配置
+					 36         <failLog path="/application/sersync/logs/rsync_fail_log.log" timeToExecute="60"/><!--default every 60mins execute once-->
+					#日志存放地址
+					 37         <crontab start="false" schedule="600"><!--600mins-->
+					 38             <crontabfilter start="false">
+					 39                 <exclude expression="*.php"></exclude>
+					 40                 <exclude expression="info/*"></exclude>
+					 41             </crontabfilter>
+					 42         </crontab>
+					#失败后定时从传设置
+		3.	客户端运行sersync
+			[root@nfs01 ~]# /application/sersync/bin/sersync -d -r -o /application/sersync/conf/confxml.xml
+		4.	添加开机启动
+			vim /etc/rc.local
+				# Sersync startup by KevinnoTs 2018-09-07
+				/application/sersync/bin/sersync -d -r -o /application/sersync/conf/confxml.xml
+		5.	为确保进程始终运行，可编写脚本加入定时任务
+			a.	编写脚本：vim /server/scripts/sersync_check.sh
+					#!/bin/sh
+					### Keep sersync is runing by KevinnoTs at 2018/09/05 ###
+					## export PAATH ##
+					export PATH=/sbin:/bin:/usr/sbin:/usr/bin
+					## Define var ##
+					STAT_sersync=`ps -ef | grep -w 'sersync' | grep -v 'grep' | wc -l`
+					PATH_sersync="/application/sersync/bin/sersync"
+					PATH_conf="/application/sersync/conf/confxml.xml"
+					## shell start ##
+					if [ ${STAT_sersync} -eq 0 ];then
+					    $PATH_sersync -d -r -o $PATH_conf &
+					else
+					    exit 0;
+					fi
+			b.	编写定时任务：crontab -e
+					# Keep sersync is runing by KevinnoTs at 2018/09/06
+					*/5 * * * * /bin/sh /server/scripts/sersync_check.sh >/dev/null 2>&1
+				[root@nfs01 scripts]# service crond reload
+				#重载定时任务
+
+
+	inotify优缺点
+		优点：	监控文件系统时间变化，通过同步工具实现实时数据同步
+		缺点：	1.	并发如果大于200个/秒（10-100k），同步会有延迟
+				2.	监控时，删除时需要比对所有文件，再进行同步（通过优化脚本，实现增和改只同步修改的，其他不比对也不同步）
+				3.	监控到事件后，调用rsync同步时单进程的（通过&并发，或使用sersync多进程同步）
+	sersync特点：
+		1.	支持配置文件管理
+		2.	真正的守护进程socket
+		3.	可以对失败文件定时重传
+		4.	第三方HTTP接口（更新cdn缓存）
+		5.	默认多线程rsync同步
+
+实时同步小结
+	1.	文件级别：inotify（sersync）+rsync
+	2.	文件系统级别：drbd，基于block块同步，缺点：备节点数据不可用
+	3.	第三方软件的同步功能：mysql、oracle、mongodb
+	4.	程序双写，直接写两台服务器
+	5.	业务逻辑解决（读写分离，备读不到，读主）
+	6.	nfs集群（1.4.5整合）：双写主存储，弃用nfs备份，用web服务器做备存储，直接读web本地。主存储使用inotify（sersync）+rsync推送。备没有找主，解决延迟问题。
+
 
 
 

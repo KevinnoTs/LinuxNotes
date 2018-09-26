@@ -1,0 +1,167 @@
+安装MySQL
+
+[ks@web01 tools]$ tar xf mysql-5.5.61-linux-glibc2.12-x86_64.tar.gz
+#解压缩安装包
+
+[ks@web01 tools]$ sudo mv mysql-5.5.61-linux-glibc2.12-x86_64/ /application/mysql-5.5.61
+#移动安装文件
+
+[ks@web01 application]$ sudo ln -s mysql-5.5.61/ /application/mysql
+#创建软链接，切记升级安装后需要从新创建此软链接
+
+[root@web01 application]# useradd -s /sbin/nologin mysql -M
+[root@web01 application]# id mysql
+uid=502(mysql) gid=502(mysql) groups=502(mysql)
+#创建用户
+
+[root@web01 application]# chown -R mysql.mysql /application/mysql/
+修改权限
+
+[root@web01 mysql]# /application/mysql/scripts/mysql_install_db --basedir=/application/mysql --datadir=/application/mysql/data/ --user=mysql
+#配置mysql
+
+[root@web01 mysql]# sed -in 's#/usr/local/#/application/#gp' /application/mysql/bin/mysqld_safe
+#修改配置文件，将安装文件地址改为自己的
+
+[root@web01 mysql]# ln -s /application/mysql/ /usr/local/mysql
+[root@web01 mysql]# ls -lhd /usr/local/mysql /application/mysql
+lrwxrwxrwx 1 root root 13 Sep 18 09:57 /application/mysql -> mysql-5.5.61/
+lrwxrwxrwx 1 root root 26 Sep 18 10:24 /usr/local/mysql -> /application/mysql/
+#也可以在/usr/local中创建一个安装目录的软链接
+
+[root@web01 mysql]# cp /application/mysql/support-files/my-small.cnf /etc/my.cnf
+cp: overwrite `/etc/my.cnf'? y
+#复制配置文件
+
+[ks@web01 ~]$ vim /etc/my.cnf
+#修改配置文件
+	[mysqld]
+	basedir = /application/mysql
+	datadir = /application/mysql/data
+	user=mysql
+	#[mysqld]下加入如下参数
+
+[root@web01 ~]# /application/mysql/bin/mysqld
+#启动mysql
+
+[root@web01 ~]# lsof -i :3306
+#测试端口
+
+[ks@web01 ~]$ /application/mysql/bin/mysql
+......
+mysql>
+#测试进入mysql模式
+
+[root@web01 ~]# ln -s /application/mysql/bin/mysql /usr/bin/mysql
+#创建软链接，方便进入mysql模式
+
+[root@web01 ~]# which mysql
+/usr/bin/mysql
+[root@web01 ~]# ls -lh /usr/bin/mysql
+lrwxrwxrwx 1 root root 28 Sep 18 11:04 /usr/bin/mysql -> /application/mysql/bin/mysql
+#显示软链接
+
+[root@web01 ~]# mysql
+......
+mysql>
+#输入mysql即可直接进入mysql模式
+
+[root@web01 ~]# sed -in 's#/usr/local/#/application/#gp' /application/mysql/support-files/mysql.server
+[root@web01 ~]# cp /application/mysql/support-files/mysql.server /etc/init.d/mysqld
+[root@web01 ~]# chmod +x /etc/init.d/mysqld
+[root@web01 ~]# ls -lh /etc/init.d/mysqld
+-rwxr-xr-x 1 root root 11K Sep 18 11:09 /etc/init.d/mysqld
+
+[root@web01 ~]# /application/mysql/bin/mysqladmin -uroot password '123456'
+#设置密码
+[root@web01 ~]# mysql -uroot -p123456
+#登录
+[root@web01 ~]# /application/mysql/bin/mysqladmin -uroot -p123456 password '654321'
+#修改密码
+
+
+
+迁移数据库（以wordpress为例）
+
+1.	目标服务器安装相同版本数据库软件并测试可以正常运行
+
+2.	源服务器数据库导出
+[root@web01 ~]# /application/mysql/bin/mysqldump -uroot -p123456 wordpress -B | gzip>bak.sql.gz
+
+3.	传送导出文件
+[root@web01 ~]# scp -P52113 bak.sql.gz ks@192.168.31.51:/tmp
+
+4.	目标服务器解压缩文件
+[root@db01 tmp]# gzip -d bak.sql.gz
+
+5.	检查数据库导出文件
+[root@db01 tmp]# less bak.sql
+
+6.	设置目标数据库密码
+[root@db01 tmp]# /application/mysql/bin/mysqladmin -uroot password '123456'
+
+7.	导入数据库
+[root@db01 tmp]# /application/mysql/bin/mysql -uroot -p123456 </tmp/bak.sql
+
+8.	检查导入数据库
+[root@db01 tmp]# /application/mysql/bin/mysql -uroot -p123456 -e "show databases like 'wordpress';"
++----------------------+
+| Database (wordpress) |
++----------------------+
+| wordpress            |
++----------------------+
+
+[root@db01 tmp]# /application/mysql/bin/mysql -uroot -p123456 -e "use wordpress;show tables;"
++---------------------------+
+| Tables_in_wordpress       |
++---------------------------+
+| kswpdb_commentmeta        |
+| kswpdb_comments           |
+| kswpdb_links              |
+| kswpdb_options            |
+| kswpdb_postmeta           |
+| kswpdb_posts              |
+| kswpdb_term_relationships |
+| kswpdb_term_taxonomy      |
+| kswpdb_termmeta           |
+| kswpdb_terms              |
+| kswpdb_usermeta           |
+| kswpdb_users              |
++---------------------------+
+
+9.	进入数据库，设置数据库用户授权，让web服务器可以访问
+[root@db01 tmp]# /application/mysql/bin/mysql -uroot -p123456
+mysql> grant all on wordpress.* to wpuser@'172.16.1.%' identified by '123456';
+
+10.	查看用户
+mysql> select user,host from mysql.user;
++--------+------------+
+| user   | host       |
++--------+------------+
+| root   | 127.0.0.1  |
+| wpuser | 172.16.1.% |
+| root   | ::1        |
+|        | db01       |
+| root   | db01       |
+|        | localhost  |
+| root   | localhost  |
++--------+------------+
+7 rows in set (0.00 sec)
+
+11.	刷新数据库
+mysql> flush privileges;
+
+12.	修改源服务器wordpress配置文件
+[root@web01 wordpress]# cd /application/nginx/html/www/wordpress
+[root@web01 wordpress]# vim wp-config.php
+/** MySQL hostname */
+define('DB_HOST', '172.16.1.51');
+#修改数据库连接主机
+
+13.	测试网站是否可以正常显示
+done
+
+
+
+
+

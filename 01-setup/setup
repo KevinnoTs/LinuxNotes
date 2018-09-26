@@ -78,13 +78,27 @@ Linux系统安全最小化原则：
 	#安装完成后使用rpm -qa命令检查是否安装
 	[root@Ks-CentOS-6 ~]# yum update
 	#安装完成后更新所安装软件包
+		软件的安装方法：
+			1）rpm -ivh 包名.rpm	有依赖问题，需要依次安装依赖
+			2）yum安装自动解决rpm的依赖问题，最简单
+				优点：简单、易用、高效
+				缺点：不能定制，只有源里有的安装包才可以安装
+			3）编译安装（C语言源码-编译二进制等）
+				./configure（配置）
+				make（编译）
+				make install（安装）
+				优点：可以定制
+				缺点：复杂，速度慢效率低
+			4）定制rpm包，搭建yum仓库，把定制rpm包放到yum仓库，运行yum安装
+				优点：可以定制，安装方便
+				缺点：过程复杂
 
 
 7.	更新服务器时间
 	安装时尽可能选择中国所在时区并避免勾选夏时令
 	[root@Ks-CentOS-6 ~]# date
 	#查看系统日期时间
-	[root@Ks-CentOS-6 ~]# ntpdate ntp1.aliyun.com
+	[root@Ks-CentOS-6 ~]# ntpdate times.aliyun.com
 	#通过阿里云ntp服务器更新系统日期时间，类似的还有ntp2.aliyun.com等，需要yum安装ntpdate
 
 
@@ -265,9 +279,11 @@ Linux系统安全最小化原则：
 15.	加大文件描述符
 	进程开启的时候会占用文件描述符，当高并发的时候需要启动多个进程，文件描述符有可能不够用
 	[root@localhost ~]# sed -ir 's#^\#\*\s*hard\s*rss\s*10000#&\n\*                -       nofile          65535#' /etc/security/limits.conf
-	#加大文件描述符
+	#加大文件描述符，编辑/etc/security/limits.conf，增加一行* - nofile 65535
 	[root@localhost ~]# vim /etc/security/limits.conf
 	#编辑完成后查看是否成功
+	[root@localhost ~]# ulimit -n
+	#检查是否设置成功
 
 
 16.	内核优化
@@ -331,8 +347,18 @@ EOF
 	[root@localhost ~]# visudo
 	#最好使用visudo命令检查sudo文件
 
+19.	ssh服务优化
+	配置文件 /etc/ssh/sshd_config 建议优化：
+		Port 52113
+		ListenAddress 172.16.1.61:52113
+		#监听地址按需设置
+		PermitRootLogin no
+		PermitEmptyPasswords no
+		GSSAPIAuthentication no
+		UseDNS no
+	#也可使用脚本ssh_conf_opt.sh
 
-18.	基本设置已完成，如果是虚拟机或vps建议制作快照，并克隆为母版机以备以后使用
+20.	基本设置已完成，如果是虚拟机或vps建议制作快照，并克隆为母版机以备以后使用
 
 
 88.	工作场景优化总结
@@ -351,7 +377,7 @@ EOF
 		锁定后，将chattr、lsattr改名，并移走
 	12、清空/etc/issue、/etc/issue.net，去除系统及内核版本登录前的屏幕显示
 	13、清除多余的系统虚拟账号
-	14、位grub引导菜单增加密码
+	14、为grub引导菜单增加密码
 	15、禁止主机被ping
 	16、打补丁、升级软件
 

@@ -73,14 +73,18 @@ Linux 学习笔记
 	#source /etc/sysconfig/i18n
 		从配置文件中恢复语言设置
 
-5.	ifconfig 查看网络配置
-	#ifconfig
-		查看当前网络配置，类似windows中的ipconfig
-	#ip add
-		查看所有网卡信息，与ifconfig类似
-	#ifconfig | sed -n "2p"
-        inet 192.168.137.188  netmask 255.255.255.0  broadcast 192.168.137.255
-		查看并提取ip地址相关信息（显示第二行）
+5.	ifconfig 查看网络配置（configure a network interface）
+
+	[root@Ks-CentOS-6 ~]# ifconfig
+	#查看当前网络配置，类似windows中的ipconfig
+
+	[root@Ks-CentOS-6 ~]# ip add
+	#查看所有网卡信息，与ifconfig类似
+
+	[root@Ks-CentOS-6 ~]# ifconfig eth0:0 192.168.31.111/24 up
+	#为同一块网卡设置多个ip地址（临时）:0可以有多个，取值范围0～254，这个是别名，ip设置的是辅助ip
+	[root@Ks-CentOS-6 ~]# ifconfig eth0:0 down
+	#删除别名
 
 6.	ifup 启用网卡
 	#ifdown ens32
@@ -1951,6 +1955,79 @@ Linux 学习笔记
 	drwxr-xr-x. 21 root root 4.0K Jul 30 01:02 var
 	#把查询目录结果重定向到文件中，其中部分内容省略
 
+102.	watch 每隔2秒（默认）刷新执行结果（execute a program periodically, showing output fullscreen）
+	[root@backup ~]# watch -n1 date
+	#每隔1秒执行date并刷新结果
+
+103.	mkpasswd 随机生成密码，默认9位（需要安装expect）
+		选项：
+			-l 设置位数
+
+104.	dig
+
+105.	wget 下载
+	选项：
+		-q 安静的
+		-O 指定文件名
+
+106.	lsof 列出打开文件（list open files）
+	选项：
+		-i 查看端口
+
+107.	curl 浏览网页，查看其源代码（transfer a URL）
+	选项：
+		-I 查看响应的header信息
+		-s 静默
+		-w 获取状态码
+		-o 不输出内容（-o /dev/null）
+
+108.	ip show / manipulate routing, devices, policy routing and tunnels
+	[root@Ks-CentOS-6 ~]# ip add
+	#查看所有网卡信息，与ifconfig类似
+
+	[root@Ks-CentOS-6 ~]# ip addr add 192.168.31.122/24 dev eth0 label eth0:1
+	#为同一块网卡设置多个ip地址（临时）:0可以有多个，取值范围0～254，这是辅助ip，ifconfig是别名
+	[root@Ks-CentOS-6 ~]# ip addr del 192.168.31.122/24 dev eth0 label eth0:1
+	#删除辅助ip
+
+109.	rpm 安装包管理（RPM Package Manager）
+	选项：
+		-q 查询（query）
+		-e 卸载（erase）
+		-i 安装（install）
+		-U 升级（upgrade）
+		--force 强制卸载
+		--nodeps 忽略依赖
+		-a 查看所有（all）
+		-f 查看文件（file）
+		-l 列表安装生成的文件（list）
+		-v 显示/打印详细信息（verbose）
+
+	安装：
+		rpm -ivh 包名
+	卸载：
+		rpm -e [--nodeps] 包名
+	升级
+		rpm -Uvh 包名
+
+	[root@web01 ~]# rpm -qa tree
+	tree-1.5.3-3.el6.x86_64
+	#显示所有已安装的包
+
+	[root@web01 conf]# rpm -qf /usr/bin/db_deadlock
+	db4-utils-4.7.25-22.el6.x86_64
+	#接文件全路径，显示是哪个包安装的文件
+
+	[root@web01 conf]# rpm -ql tree
+	/usr/bin/tree
+	/usr/share/doc/tree-1.5.3
+	/usr/share/doc/tree-1.5.3/LICENSE
+	/usr/share/doc/tree-1.5.3/README
+	/usr/share/man/man1/tree.1.gz
+	#查询tree包都安装了哪些文件
+
+
+
 
 ##################################################
 
@@ -2413,4 +2490,13 @@ ctrl+q 	取消挂起
 监控软件：
 cacti	监控网络流量，绘图功能比较优秀
 nagios	监控服务器的负载和服务状态比较有优势
-zabbix	综合以上两种
+zabbix	综合以上
+
+
+##################################################
+
+
+递归：程序重复调用函数，实现循环
+迭代：函数自身代码实现循环
+
+

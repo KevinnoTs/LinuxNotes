@@ -1,0 +1,15 @@
+IP
+	独立IP（Internet Protocol），是指不同IP地址的计算机访问网站时被计算的总次数，是衡量网站流量的一个重要指标
+
+PV
+	访问量（Page View），是指页面流量量或点击量，每访问一个页面就会计算一个PV
+
+UV
+	独立访客（Unique Visitor），是指计算访问客户端的数量，同一个客户端计算为一个访客
+
+
+QPS
+	每秒查询率（Query Per Second），是用于衡量一个特定的查询服务器在规定时间内所处理流量多少的标准
+
+IOPS
+	美妙读写（I/O）的次数（Input/Output Operations Per Second），多用于数据库等场合，衡量随机访问的性能
