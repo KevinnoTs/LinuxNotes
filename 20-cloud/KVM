@@ -1,0 +1,238 @@
+一、准备系统
+
+1. 准备一台服务器（可以是虚拟机）内存最好大于2G，硬盘大于20G
+
+2. 安装好CentOS 7，可以最小化安装
+
+3. 开启CPU虚拟化，设置BIOS，虚拟机在硬件配置CPU界面选择虚拟化
+
+4. 建议规范统一，安装此Liunx，在读取光盘引导时，按tab，输入net.ifnames=0 biosdevname=0，将网卡命名规则改为CentOS6的eth0开始
+
+5. 修改yum源与epel，以便更快安装所需软件
+[root@kvm-master ~]# ls /etc/yum.repos.d/
+CentOS-Base.repo  CentOS-Debuginfo.repo  CentOS-Media.repo    CentOS-Vault.repo
+CentOS-CR.repo    CentOS-fasttrack.repo  CentOS-Sources.repo
+[root@kvm-master ~]# mv /etc/yum.repos.d/CentOS-Base.repo{,.backup.ks.20180928}
+[root@kvm-master ~]# curl -o /etc/yum.repos.d/CentOS-Base.repo http://mirrors.aliyun.com/repo/Centos-7.repo
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100  2523  100  2523    0     0  22867      0 --:--:-- --:--:-- --:--:-- 23146
+[root@kvm-master ~]# ls /etc/yum.repos.d/
+CentOS-Base.repo                     CentOS-Debuginfo.repo  CentOS-Sources.repo
+CentOS-Base.repo.backup.ks.20180928  CentOS-fasttrack.repo  CentOS-Vault.repo
+CentOS-CR.repo                       CentOS-Media.repo
+[root@kvm-master ~]# yum makecache
+
+[root@kvm-master ~]# yum install epel-release -y
+
+[root@kvm-master ~]# yum update -y
+
+6. 安装常用软件 tree lrzsz net-tools vim
+[root@kvm-master ~]# yum install tree lrzsz net-tools vim lsof -y
+
+7. 关闭SELinux
+[root@kvm-master ~]# cp /etc/selinux/config /etc/selinux/config.bak.ks.20180928
+[root@kvm-master ~]# sed -i 's#SELINUX=enforcing#SELINUX=disabled#g' /etc/selinux/config
+[root@kvm-master ~]# setenforce 0
+[root@kvm-master ~]# getenforce
+Permissive
+
+8. 上传Linux镜像
+[root@kvm-master ~]# mkdir /server/tools -p
+[root@kvm-master ~]# cd /server/tools
+[root@kvm-master tools]# rz
+rz waiting to receive.
+Starting zmodem transfer.  Press Ctrl+C to cancel.
+Transferring CentOS-7-x86_64-Minimal-1804.iso...
+  100%  927744 KB    2034 KB/sec    00:07:36       0 Errors
+
+9. 下载VNC Viewer: https://www.realvnc.com/en/connect/download/viewer/
+
+
+二、准备环境
+
+1. 检查CPU对虚拟化的支持
+[root@kvm-master ~]# grep -E '(vmx|svm)' /proc/cpuinfo
+flags           : fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ss syscall nx rdtscp lm constant_tsc arch_perfmon nopl xtopology tsc_reliable nonstop_tsc eagerfpu pni pclmulqdq vmx ssse3 cx16 pcid sse4_1 sse4_2 x2apic popcnt tsc_deadline_timer aes xsave avx f16c rdrand hypervisor lahf_lm tpr_shadow vnmi ept vpid fsgsbase tsc_adjust smep arat
+
+2. 安装需要的软件包
+[root@kvm-master ~]# yum install -y qemu-kvm libvirt virt-install
+## qemu-kvm kvm用户空间的管理工具
+## libvirt kvm虚拟机的管理工具
+## virt-install 安装虚拟机工具
+
+3. 运行libvirt，关闭防火墙
+[root@kvm-master ~]# systemctl enable libvirtd
+[root@kvm-master ~]# systemctl start libvirtd
+
+[root@kvm-master ~]# systemctl disable firewalld
+Removed symlink /etc/systemd/system/multi-user.target.wants/firewalld.service.
+Removed symlink /etc/systemd/system/dbus-org.fedoraproject.FirewallD1.service.
+[root@kvm-master ~]# systemctl stop firewalld
+
+4. 检查网卡
+[root@kvm-master ~]# ifconfig
+......
+virbr0: flags=4099<UP,BROADCAST,MULTICAST>  mtu 1500
+        inet 192.168.122.1  netmask 255.255.255.0  broadcast 192.168.122.255
+        ether 52:54:00:36:d6:a8  txqueuelen 1000  (Ethernet)
+        RX packets 0  bytes 0 (0.0 B)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 0  bytes 0 (0.0 B)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+5. 生成虚拟机
+
+a. 先创建虚拟机硬盘，后生成
+[root@kvm-master ~]# qemu-img create -f raw /opt/kvm-CentOS-7.raw 10G
+Formatting '/opt/kvm-CentOS-7.raw', fmt=raw size=10737418240
+# 创建虚拟机磁盘
+
+[root@kvm-master ~]# virt-install \
+--virt-type kvm \
+--name kvm-CentOS-7-test \
+--ram 1024 \
+--cdrom=/server/tools/CentOS-7-x86_64-Minimal-1804.iso \
+--disk path=/opt/kvm-CentOS-7.raw \
+--network network=default \
+--graphics vnc,listen=0.0.0.0 \
+--noautoconsole
+
+Starting install...
+Domain installation still in progress. You can reconnect to
+the console to complete the installation process.
+# 生成虚拟机
+
+b. 直接生成硬盘和虚拟机
+virt-install \
+--virt-type kvm \
+--name kvmbase \
+--ram 1024 \
+--disk /server/kvmimg/kvmbase.img,format=qcow2,size=10 \
+--network network=default \
+--cdrom /server/tools/CentOS-7-x86_64-Minimal-1804.iso \
+--graphics vnc,listen=0.0.0.0 \
+--noautoconsole
+
+Starting install...
+Allocating 'kvmbase.img'                                                   |  10 GB  00:00:00
+Domain installation still in progress. You can reconnect to
+the console to complete the installation process.
+
+
+三、虚拟机安装系统（光驱自启动，60秒内进行操作，否则不能修改网卡命名规则）
+
+1. 运行VNC
+
+2. 连接宿主机IP，默认端口为5900，详细端口请查看
+[root@kvm-master ~]# netstat -lntup | grep qemu
+tcp        0      0 0.0.0.0:5900            0.0.0.0:*               LISTEN      10571/qemu-kvm
+
+3. 安装系统，过程略，ip自动获取即可
+
+4. 虚拟机必要的优化及安装
+	a. yum源及软件
+	b. 关闭SELinux及firewalld
+
+
+四、修改网络为桥接（宿主机网卡eth0为bridge IP66，eth1为bridge IP68）
+
+1. 命令操作
+
+[root@kvm-master ~]# brctl addbr br0
+# 创建一个桥接网卡
+
+[root@kvm-master ~]# brctl show
+bridge name     bridge id               STP enabled     interfaces
+br0             8000.000000000000       no
+virbr0          8000.52540036d6a8       yes             virbr0-nic
+                                                        vnet0
+# 查看网卡工作模式
+
+[root@kvm-master ~]# brctl addif br0 eth0
+# br0桥接到eth0上
+
+ip addr del dev eth0 192.168.31.66/24
+
+ifconfig br0 192.168.31.66/24 up
+
+route add default gw 192.168.31.1
+
+
+2. 创建一个脚本
+
+#!/bin/bash
+/usr/sbin/brctl addbr br0
+/usr/sbin/brctl addif br0 eth0
+/usr/sbin/ip addr del dev eth0 192.168.31.66/24
+/usr/sbin/ifconfig br0 192.168.31.66/24 up
+/usr/sbin/route add default gw 192.168.31.1
+
+
+3. 修改配置文件xml
+
+[root@kvm-master ~]# virsh edit kvm-CentOS-7-test
+
+    <interface type='network'>
+      <mac address='52:54:00:ad:be:72'/>
+      <source network='default'/>
+      <model type='virtio'/>
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x03' function='0x0'/>
+    </interface>
+
+改为
+
+    <interface type='bridge'>
+      <mac address='52:54:00:ad:be:72'/>
+      <source bridge='br0'/>
+      <model type='virtio'/>
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x03' function='0x0'/>
+    </interface>
+
+
+
+
+
+
+
+三、相关设置与命令
+
+[root@kvm-master ~]# virsh list --all
+# 查看所有虚拟机
+
+[root@kvm-master ~]# virsh start kvm-CentOS-7-test
+# 启动虚拟机
+
+[root@kvm-master ~]# virsh shutdown kvm-CentOS-7-test
+# 关闭虚拟机
+
+[root@kvm-master ~]# ls -lh /etc/libvirt/qemu/
+total 4.0K
+-rw-------. 1 root root 3.9K Sep 28 17:02 kvm-CentOS-7-test.xml
+drwx------. 3 root root   42 Sep 28 16:48 networks
+[root@kvm-master ~]# virsh edit kvm-CentOS-7-test
+# 编辑虚拟机xml
+
+	<vcpu placement='static'>1</vcpu>
+	# 默认1个cpu
+	<vcpu placement='auto' current='1'>4</vcpu>
+	# 可以修改为当前1个最大4个cpu，如此设置才可以实现cpu热添加
+
+[root@kvm-master ~]# virsh setvcpus kvm-CentOS-7-test 2 --live
+# 实现CPU热添加
+
+[root@kvm-master ~]# virsh qemu-monitor-command kvm-CentOS-7-test --hmp --cmd info balloon
+balloon: actual=1024
+# 查看当前内存大小
+
+[root@kvm-master ~]# virsh qemu-monitor-command kvm-CentOS-7-test --hmp --cmd balloon 512
+# 内存热修改
+
+[root@kvm-master ~]# brctl show
+bridge name     bridge id               STP enabled     interfaces
+virbr0          8000.52540036d6a8       yes             virbr0-nic
+                                                        vnet0
+# 查看网卡工作模式
+
+
+

@@ -203,26 +203,26 @@ root密码丢失找回
 		3. 客户端编写脚本，打包、导出md5、上传、删除过期备份，并设置定时任务
 			[root@nfs01 ~]# mkdir -p /server/scrpits/
 			[root@nfs01 ~]# vim backup_data_everyday.sh
-				### Backup data every 0 o'clock by KevinnoTs at 2018/09/04 ###
-				#!/bin/sh
-				## export PAATH ##
-				export PATH=/sbin:/bin:/usr/sbin:/usr/bin
-				## Define var ##
-				BACKUP_DIR=$(echo `ifconfig eth1 | awk -F "[ :]+" 'NR==2 {print $4}'`_$HOSTNAME)
-				BACKUP_PATH=/backup
-				BACKUP_DATE=$(echo $(date +%F)_$(date | cut -c-3))
-				## Make dir for different host ##
-				mkdir -p $BACKUP_PATH/$BACKUP_DIR &&\
-				## shell start ##
-				cd / &&\
-				# Package system config #
-				tar zcfh $BACKUP_PATH/$BACKUP_DIR/backup_sys_conf_${BACKUP_DATE}.tar.gz ./var/spool/cron/ ./etc/rc.local ./server/scripts/ ./etc/hosts &&\
-				# Record md5 in file #
-				find $BACKUP_PATH/$BACKUP_DIR/ -type f -name "*${BACKUP_DATE}.tar.gz" | xargs md5sum >$BACKUP_PATH/$BACKUP_DIR/md5_flag_${BACKUP_DATE}.md5 &&\
-				# Backup all file with rsync #
-				rsync -az $BACKUP_PATH/ rsync_backup@172.16.1.41::backup --password-file=/etc/rsync.password
-				# Delete backup file which is 7 days age #
-				find $BACKUP_PATH/$BACKUP_DIR/ -type f -mtime +7 \( -name "*.tar.gz" -o -name "*.md5" \) | xargs rm -f
+### Backup data every 0 o'clock by KevinnoTs at 2018/09/04 ###
+#!/bin/sh
+## export PAATH ##
+export PATH=/sbin:/bin:/usr/sbin:/usr/bin
+## Define var ##
+BACKUP_DIR=$(echo `ifconfig eth1 | awk -F "[ :]+" 'NR==2 {print $4}'`_$HOSTNAME)
+BACKUP_PATH=/backup
+BACKUP_DATE=$(echo $(date +%F)_$(date | cut -c-3))
+## Make dir for different host ##
+mkdir -p $BACKUP_PATH/$BACKUP_DIR &&\
+## shell start ##
+cd / &&\
+# Package system config #
+tar zcfh $BACKUP_PATH/$BACKUP_DIR/backup_sys_conf_${BACKUP_DATE}.tar.gz ./var/spool/cron/ ./etc/rc.local ./server/scripts/ ./etc/hosts &&\
+# Record md5 in file #
+find $BACKUP_PATH/$BACKUP_DIR/ -type f -name "*${BACKUP_DATE}.tar.gz" | xargs md5sum >$BACKUP_PATH/$BACKUP_DIR/md5_flag_${BACKUP_DATE}.md5 &&\
+# Backup all file with rsync #
+rsync -az $BACKUP_PATH/ rsync_backup@172.16.1.41::backup --password-file=/etc/rsync.password
+# Delete backup file which is 7 days age #
+find $BACKUP_PATH/$BACKUP_DIR/ -type f -mtime +7 \( -name "*.tar.gz" -o -name "*.md5" \) | xargs rm -f
 			[root@nfs01 backup]# crontab -e
 				# Backup data every 0 o'clock by KevinnoTs at 2018/09/04
 				00 00 * * * /bin/sh /server/scripts/backup_data_everyday.sh >/dev/null 2>&1
@@ -231,11 +231,11 @@ root密码丢失找回
 				[root@backup ~]# cp /etc/mail.rc{,.bak}
 			b.	修改配置文件 /etc/mail.rc
 				[root@backup ~]# vim /etc/mail.rc
-					set from=ks_linux_mail@163.com
-					set smtp=smtp.163.com
-					set smtp-auth-user=ks_linux_mail
-					set smtp-auth-password=kslinux123
-					set smtp-auth=login
+set from=ks_linux_mail@163.com
+set smtp=smtp.163.com
+set smtp-auth-user=ks_linux_mail
+set smtp-auth-password=kslinux123
+set smtp-auth=login
 			c.	测试邮件发送
 				[root@backup ~]# echo "test linux mail" | mail -v -s "test" kevinnots@163.com
 				Resolving host smtp.163.com . . . done.

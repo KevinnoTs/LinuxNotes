@@ -160,7 +160,7 @@ yum安装方法：
 	 别名：
 	 server_name www.gaoqichen.com gaoqichen.com
 	 #实现访问www.gaoqichen.com与gaoqichen.com为相同虚拟主机
-	 #该功能常用在不通服务器使用不通别名，如www1.gaoqichen.com、www2.gaoqichen.com，方便监控各台服务器状态
+	 #该功能常用在不同服务器使用不同别名，如www1.gaoqichen.com、www2.gaoqichen.com，方便监控各台服务器状态
 
 
 模块

@@ -1,0 +1,139 @@
+1.	安装nginx
+
+# 下面命令使用 Send Commands to All Sessions，同时配置两台负载均衡服务器
+
+yum install -y pcre pcre-devel openssl-devel gcc gcc-c++
+useradd www -s /sbin/nologin -M
+cd /server/tools/
+wget -q http://nginx.org/download/nginx-1.12.2.tar.gz
+tar xf nginx-1.12.2.tar.gz
+./configure --user=www --group=www --with-http_stub_status_module --with-http_ssl_module --prefix=/application/nginx-1.12.2/
+make && make install
+ln -s /application/nginx-1.12.2/ /application/nginx
+cat >/application/nginx/conf/nginx.conf<<EOF
+# Nginx.conf by KevinnoTs 20181008
+worker_processes  1;
+events {
+    worker_connections  1024;
+}
+http {
+    include       mime.types;
+    default_type  application/octet-stream;
+    sendfile        on;
+    keepalive_timeout  65;
+    upstream www_server_pools {
+        server 192.168.31.18:80 weight=1;
+        server 192.168.31.19:80 weight=1;
+    }
+    server {
+        listen       80;
+        server_name  gaoqichen.com www.gaoqichen.com;
+        location / {
+            proxy_pass http://www_server_pools;
+            proxy_set_header Host \$host;
+            proxy_set_header X-Forwarded-For \$remote_addr;
+        }
+    }
+}
+EOF
+cat >/usr/lib/systemd/system/nginx.service<<EOF
+[Unit]
+Description=Nginx web server
+After=network.target remote-fs.target nss-lookup.target
+
+[Service]
+Type=forking
+PIDFile=/application/nginx/logs/nginx.pid
+ExecStart=/application/nginx/sbin/nginx
+ExecReload=/application/nginx/sbin/nginx -s reload
+ExecStop=/application/nginx/sbin/nginx -s stop
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
+EOF
+cat >>/etc/profile<<EOF
+
+# Add MySQL PATH by KevinnoTs 20181008
+export PATH=/application/nginx/sbin:$PATH
+EOF
+source /etc/profile
+nginx -t
+systemctl enable nginx.service
+systemctl start nginx.service
+
+
+# 上面命令使用 Send Commands to All Sessions，同时配置两台负载均衡服务器
+
+编辑备份脚本，增加文件
+./usr/lib/systemd/system/nginx.service \
+./application/nginx/conf/nginx.conf
+
+
+2.	keepalived
+[root@lb01 ~]# yum install -y keepalived
+[root@lb01 ~]# >/etc/keepalived/keepalived.conf
+[root@lb01 ~]# vim /etc/keepalived/keepalived.conf
+! Configuration File for keepalived
+
+global_defs {
+   notification_email {
+      ks_linux_mail@163.com
+   }
+   notification_email_from ks_linux_mail@163.com
+   smtp_server 192.168.200.1
+   smtp_connect_timeout 30
+   router_id LVS_DEVEL
+}
+
+vrrp_instance VI_1 {
+    state MASTER
+    interface eth0
+    virtual_router_id 51
+    priority 150
+    advert_int 1
+    authentication {
+        auth_type PASS
+        auth_pass 1111
+    }
+    virtual_ipaddress {
+        192.168.31.13/24
+    }
+}
+# 主负载均衡服务器配置文件
+
+[root@lb02 ~]# >/etc/keepalived/keepalived.conf
+[root@lb02 ~]# vim /etc/keepalived/keepalived.conf
+! Configuration File for keepalived
+
+global_defs {
+   notification_email {
+      ks_linux_mail@163.com
+   }
+   notification_email_from ks_linux_mail@163.com
+   smtp_server 192.168.200.1
+   smtp_connect_timeout 30
+   router_id LVS_DEVEL1
+}
+
+vrrp_instance VI_1 {
+    state BACKUP
+    interface eth0
+    virtual_router_id 51
+    priority 100
+    advert_int 1
+    authentication {
+        auth_type PASS
+        auth_pass 1111
+    }
+    virtual_ipaddress {
+        192.168.31.13/24
+    }
+}
+# 备负载均衡服务器配置文件
+
+systemctl enable keepalived.service
+systemctl start keepalived.service
+编辑备份脚本，增加文件./etc/keepalived/keepalived.conf
+
+# 存在个小问题，就是相同IP每次刷新都会切换web服务器，这个可以通过多种方式优化，待续...

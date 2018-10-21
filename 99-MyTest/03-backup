@@ -1,0 +1,181 @@
+1.	创建rsync用户
+[root@backup ~]# useradd rsync -s /sbin/nologin -M
+[root@backup ~]# id rsync
+uid=1001(rsync) gid=1001(rsync) groups=1001(rsync)
+
+
+2.	安装rsync
+[root@backup ~]# yum -y install rsync
+
+
+3.	创建并修改配置文件
+[root@backup ~]# vim /etc/rsyncd.conf
+# Created by KevinnoTs 2018/10/03
+# rsyncd.conf start
+
+uid = rsync
+gid = rsync
+use chroot = no
+max connections = 0
+#pid file = /var/run/rsyncd.pid
+lock file = /var/run/rsyncd.lock
+log file = /var/run/rsyncd.log
+transfer logging = yes
+timeout = 600
+read only = false
+list = false
+ignore errors
+ignore nonreadable = yes
+hosts allow = 172.16.11.0/24
+# host deny = 0.0.0.0/32
+dont compress   = *.gz *.tgz *.zip *.z *.Z *.rpm *.deb *.bz2
+fake super = yes
+auth users = ks_backup
+secrets file = /etc/rsync.ks.password
+
+[backup]
+path = /backup
+
+[data]
+path = /data
+
+
+4.	创建共享目录并设置属主属组
+[root@backup ~]# mkdir /backup
+[root@backup ~]# chown -R rsync.rsync /backup/
+[root@backup ~]# ls -lhd /backup/
+drwxr-xr-x 2 rsync rsync 6 Oct  3 00:33 /backup/
+
+
+5.	创建密码文件并设置权限为600
+[root@backup ~]# vim /etc/rsync.ks.password
+ks_backup:qwert123
+#格式为配置文件中的auth users:user password
+#此密码为明文
+[root@backup ~]# chmod 600 /etc/rsync.ks.password
+[root@backup ~]# ls -lh /etc/rsync.ks.password
+-rw------- 1 root root 19 Oct  3 00:35 /etc/rsync.ks.password
+
+
+6.	启动进程并设置自启动
+[root@backup ~]# systemctl start rsyncd.service
+[root@backup ~]# systemctl enable rsyncd.service
+Created symlink from /etc/systemd/system/multi-user.target.wants/rsyncd.service to /usr/lib/systemd/system/rsyncd.service.
+
+
+7.	检查服务运行状态（默认端口为873）
+[root@backup ~]# netstat -lntup | grep 873
+tcp        0      0 0.0.0.0:873             0.0.0.0:*               LISTEN      1671/rsync
+tcp6       0      0 :::873                  :::*                    LISTEN      1671/rsync
+[root@backup ~]# lsof -i :873
+COMMAND  PID USER   FD   TYPE DEVICE SIZE/OFF NODE NAME
+rsync   1671 root    3u  IPv4  20561      0t0  TCP *:rsync (LISTEN)
+rsync   1671 root    5u  IPv6  20562      0t0  TCP *:rsync (LISTEN)
+[root@backup ~]# ps -ef | grep rsync | grep -v grep
+root       1671      1  0 00:38 ?        00:00:00 /usr/bin/rsync --daemon --no-detach
+
+
+8.	备份本服务器文件
+[root@backup ~]# vim backup_system_file_everydat_for_backup.sh
+### Backup data every 0 o'clock by KevinnoTs 20181003 ###
+#!/bin/sh
+## export PAATH ##
+export PATH=/sbin:/bin:/usr/sbin:/usr/bin
+## Define var ##
+# Take the ip
+BACKUP_DIR=$(echo `ifconfig eth1 | awk -F "[ :.]+" 'NR==2 {print $6}'`_$HOSTNAME)
+BACKUP_PATH=/backup
+# Take backup date
+BACKUP_DATE=$(echo $(date +%F)_$(date | cut -c-3))
+# Set backup files
+BACKUP_FILES="./var/spool/cron/ ./etc/hosts ./etc/profile ./etc/rc.local \
+./server/scripts/"
+## Make dir for different host ##
+mkdir -p $BACKUP_PATH/$BACKUP_DIR &&\
+## shell start ##
+cd / &&\
+# Package files #
+tar zcfh $BACKUP_PATH/$BACKUP_DIR/backup_sys_conf_${BACKUP_DATE}.tar.gz $BACKUP_FILES &&\
+# Delete backup file which is 30 days age #
+find $BACKUP_PATH/$BACKUP_DIR/ -type f -mtime +30 -name "*.tar.gz" | xargs rm -f
+
+[root@backup ~]# crontab -e
+# Backup data every 0 o'clock by KevinnoTs 20181003
+00 00 * * * /bin/sh /server/scripts/backup_system_file_everydat_for_backup.sh >/dev/null 2>&1
+
+
+9.	编辑设置邮件服务
+[root@backup ~]# yum install -y sendmail mailx libreport-plugin-mailx
+# 安装需要的软件包
+[root@backup ~]# vim /etc/mail.rc
+# Add by KevinnoTs 20181003
+set from=ks_linux_mail@163.com
+set smtp=smtp.163.com
+set smtp-auth-user=ks_linux_mail
+set smtp-auth-password=kslinux123
+set smtp-auth=login
+# 编辑mail的配置文件，最后添加如上内容
+[root@backup ~]# echo "test linux mail" | mail -v -s "test" kevinnots@163.com
+# 测试邮件发送
+
+
+10	编写脚本，检查备份过来的文件md5值，并删除180天前的非周日备份
+[root@backup ~]# vim /server/scripts/check_and_del_backup_files.sh
+#!/bin/sh
+#
+### Check the backup md5
+### Delete old file
+### by KevinnoTs 20180904
+#
+## export PAATH ##
+export PATH=/sbin:/bin:/usr/sbin:/usr/bin
+## Define var ##
+BACKUP_PATH=/backup
+BACKUP_DATE=$(echo $(date +%F)_$(date | cut -c-3))
+## shell start ##
+mkdir /backup/md5_error -p
+# Check md5 and record these result in file #
+find $BACKUP_PATH -type f -name "*${BACKUP_DATE}.md5" | xargs \
+  md5sum -c >$BACKUP_PATH/md5_error/md5_${BACKUP_DATE}.log 2>&1
+# Edit the result
+sed -i '/tar.gz: OK$/d; /checksum did NOT match$/d' \
+  $BACKUP_PATH/md5_error/md5_${BACKUP_DATE}.log &&\
+# Delete the file which is 180 days ago #
+mv $BACKUP_PATH/md5_error/md5_${BACKUP_DATE}.log /tmp/
+find /backup -type f ! -name "*_Mon.*" -mtime +180 | xargs rm -f
+find /tmp -type f -name "md5_*.log" -mtime +1 | xargs rm -f
+
+
+11	编写脚本，将当检查到有错误时邮件通知管理员
+[root@backup ~]# vim /server/scripts/send_the_check_result_to_admin.sh
+#!/bin/sh
+#
+### Send the check md5 result to admin
+### by KevinnoTs 20180904
+#
+## export PAATH ##
+export PATH=/sbin:/bin:/usr/sbin:/usr/bin
+## Define var ##
+BACKUP_PATH=/backup
+BACKUP_DATE=$(echo $(date +%F)_$(date | cut -c-3))
+LINES_OF_ERROR=`cat $BACKUP_PATH/check_md5_result/${BACKUP_DATE}.log  | wc -l`
+## shell start ##
+if [ $LINES_OF_ERROR -ne 0 ];then
+# Send the mail #
+  cat $BACKUP_PATH/check_md5_result/${BACKUP_DATE}.log | \
+  mail -s "$BACKUP_DATE backup ERROR!" kevinnots@163.com
+else
+  mv $BACKUP_PATH/check_md5_result/${BACKUP_DATE}.log /tmp/
+  exit 0;
+fi
+
+
+12	设置定时任务
+[root@backup ~]# crontab -e
+# Check the backup file with md5 by KevinnoTs 20181003
+00 06 * * * /bin/sh /server/scripts/check_and_del_backup_files.sh >/dev/null 2>&1
+
+# Send the check result to admin by KevinnoTs 20181003
+00 07 * * * /bin/sh /server/scripts/send_the_check_result_to_admin.sh >/dev/null 2>&1
+
+

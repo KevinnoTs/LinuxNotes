@@ -1,0 +1,339 @@
+监控概述
+
+初级
+1. 识别监控对象（分级）
+2. 理解监控对象（理论知识）
+3. 细分监控对象的指标
+4. 确定告警的基准线
+
+中级
+1. 工具化和监控分离
+2. 监控对象的分类
+	a. 硬件监控 -- 方法：机房巡检、IPMI、SNMP
+	b. 系统监控 -- 对象：CPU、内存、磁盘、网络
+	c. 服务监控 -- 对象：Nginx、Tomcat、RabbitMQ、OpenStack、MySQL等
+	d. 日志监控 -- 方法：Elastic Stack
+	e. 网络监控 -- 方法：第三方、Smokeping
+	f. APM应用性能管理 -- 工具：PINPoint
+	g. 流量监控 -- 工具：Piwik、XX统计、XX分析
+	h. 其他监控：APP监控、安全监控、业务监控、舆论监控等
+3. 掌握一个监控工具（Zabbix）
+
+精通
+1. 标准化监控（标准化脚本、模板等）
+2. 分布式监控（主动、被动、分布式）
+3. 自动化监控（自动发现、主动注册【Agent主动注册、Server主动添加（API）】）
+4. 性能优化（数据采集、数据存储、数据查询）
+5. 二次开发（定制报表、API调用）
+
+进阶
+1. 动态告警
+2. 智能告警
+	a. 告警去重
+	b. 依赖
+3. 故障自愈（事件驱动、主动控制）
+4. 大规模
+
+
+硬件监控
+1. 机房巡检
+2. 通过网络来巡检
+	DELL 	iDRAC
+	HP		ILO
+	IBM		IMM
+IPMI （Intelligent Platform Management Interface）即智能平台管理接口是使硬件管理具备“智能化”的新一代通用接口标准
+https://www.ibm.com/developerworks/cn/linux/l-ipmi/
+yum install OpenIPMI ipmitool -y
+
+SNMP 简单网络管理协议
+安装：
+[root@cm ~]# yum install -y net-snmp net-snmp-libs net-snmp-utils
+
+配置文件：
+[root@cm ~]# vim /etc/snmp/snmpd.conf
+	#com2sec notConfigUser default public
+	com2sec admin default admin
+
+	#group notConfigGroup v1 notConfigUser
+	#group notConfigGroup v2c notConfigUser
+	group admin v2c admin
+
+	#view systemview included .1.3.6.1.2.1.1
+	#view systemview included ..1.3.6.1.2.1.25.1.1
+	view admin included .1 80
+
+	#access notConfigGroup "" any noauth exact systemview none none
+	access admin "" any noauth exact admin admin none
+
+查看信息：
+[root@cm snmp]# snmpget -v2c -c admin 192.168.31.71 .1.3.6.1.4.1.2021.10.1.3.1
+UCD-SNMP-MIB::laLoad.1 = STRING: 0.02
+#测试查看该机器一分钟内负载
+
+[root@cm snmp]# snmpwalk -v2c -c admin 192.168.31.71 .1.3.6.1.4.1.2021.10.1.3
+UCD-SNMP-MIB::laLoad.1 = STRING: 0.08
+UCD-SNMP-MIB::laLoad.2 = STRING: 0.04
+UCD-SNMP-MIB::laLoad.3 = STRING: 0.05
+#查看其下所有子节点信息
+## .1 1分钟
+## .2 5分钟
+## .3 15分钟
+
+[root@cm snmp]# snmpwalk -v2c -c admin 192.168.31.71 .1.3.6.1.4.1.2021.4.3.0
+UCD-SNMP-MIB::memTotalSwap.0 = INTEGER: 2097148 kB
+#查看内存使用
+
+
+系统监控
+1. CPU
+进程（process）：每个进程，至少有一个线程；每个进程可以有多个线程
+线程（thread）：做个线程可以协同工作，完成某一任务
+互斥锁（Mutual exclusion，缩写Mutex）：防止多个线程同时读写某一块内存区域
+
+查看cpu使用情况
+top
+vmstat 1 10
+mpstat 1 10
+uptime
+cat /proc/loadavg
+lscpu
+
+2. 负载：单位时间内运行队列中就绪等待的进程数平均值
+
+
+zabbix
+zabbix 是一个分布式开源的监控系统
+其他监控系统还有 cacti, nagios, ManageEngine_ApplicationsManager, lepus, smokeping, piwiki等
+选择zabbix的理由：简单、高效、灵活
+
+监控系统架构：数据采集--数据存储--数据分析、展示、告警
+
+版本选择
+https://www.zabbix.com/life_cycle_and_release_policy
+
+时间同步*
+
+zabbix 3.0 环境要求
+https://www.zabbix.com/documentation/3.0/manual/installation/requirements
+
+	MySQL 	5.0.3 - 5.7.x
+	Apache 	1.3.12 or later
+	PHP 	5.4.0 or later (php v7 not supported yet)
+		gd
+		bcmath
+		ctype
+		libXML
+		xmlreader
+		xmlwriter
+		session
+		sockets
+		mbstring
+		gettext
+		ldap
+		mysqli
+	Server
+		OpenIPMI
+		libssh2
+		fping
+		libcurl
+		libiksemel
+		libxml2
+		net-snmp
+
+推荐书籍：https://www.amazon.cn/3/dp/B00MN6QEYK
+
+安装：
+
+[root@cm ~]# rpm -ivh https://repo.zabbix.com/zabbix/3.0/rhel/7/x86_64/zabbix-release-3.0-1.el7.noarch.rpm
+#添加zabbix官方源
+
+[root@cm ~]# yum install zabbix-server-mysql zabbix-web-mysql -y
+#安装zabbix
+
+[root@cm ~]# yum install mariadb-server -y
+#安装mariabdb
+
+[root@cm ~]# systemctl enable mariadb.service
+Created symlink from /etc/systemd/system/multi-user.target.wants/mariadb.service to /usr/lib/systemd/system/mariadb.service.
+#开机自启动
+
+[root@cm ~]# systemctl start mariadb.service
+#启动数据库
+
+[root@cm ~]# netstat -lntup | grep 3306
+tcp        0      0 0.0.0.0:3306            0.0.0.0:*               LISTEN      2486/mysqld
+#检查端口
+
+[root@cm ~]# yum install bash-completion.noarch bash-completion-extras.noarch -y
+#命令补全所需软件包（需要安装epel源：yum install epel-release -y）
+
+[root@cm ~]# mysql_secure_installation
+#初始化数据库
+#回车--y--设置密码--重复密码--y--y--y--y
+
+[root@cm ~]# mysql -uroot -p
+Enter password:
+#进入数据库
+
+MariaDB [(none)]> create database zabbix character set utf8 collate utf8_bin;
+Query OK, 1 row affected (0.00 sec)
+#创建数据库，切记加字符集utf8
+
+MariaDB [(none)]> grant all privileges on zabbix.* to zabbix@localhost identified by '123.Com';
+Query OK, 0 rows affected (0.00 sec)
+#授权用户，密码123.Com
+
+MariaDB [(none)]> flush privileges;
+Query OK, 0 rows affected (0.00 sec)
+#刷新数据库
+
+MariaDB [(none)]> quit
+Bye
+#退出
+
+[root@cm ~]# rpm -qa zabbix-server-mysql
+zabbix-server-mysql-3.0.22-1.el7.x86_64
+[root@cm ~]# rpm -ql zabbix-server-mysql | grep "\.sql"
+/usr/share/doc/zabbix-server-mysql-3.0.22/create.sql.gz
+#找到安装zabbix时带的默认数据库
+
+[root@cm ~]# zcat /usr/share/doc/zabbix-server-mysql-3.0.22/create.sql.gz | mysql -uzabbix -p123.Com zabbix
+#zcat命令为查看压缩包，通过通道导入到数据库中
+
+[root@cm ~]# mysql -uroot -p123456
+MariaDB [(none)]> use zabbix;
+Reading table information for completion of table and column names
+You can turn off this feature to get a quicker startup with -A
+
+Database changed
+MariaDB [zabbix]> show tables;
+......
+113 rows in set (0.00 sec)
+
+MariaDB [zabbix]> quit
+Bye
+#查看导入数据库是否成功，3.0为103张表
+
+[root@cm ~]# vim /etc/httpd/conf/httpd.conf
+ 95 ServerName 127.0.0.1:80
+#编辑apache配置文件
+
+[root@cm ~]# systemctl enable httpd.service
+Created symlink from /etc/systemd/system/multi-user.target.wants/httpd.service to /usr/lib/systemd/system/httpd.service.
+[root@cm ~]# systemctl start httpd.service
+#启动apache
+
+[root@cm ~]# netstat -lntup | grep 80
+tcp        0      0 0.0.0.0:80              0.0.0.0:*               LISTEN      2771/httpd
+#验证apache是否启动
+
+[root@cm ~]# ls -hl /etc/httpd/conf.d/
+total 24K
+-rw-r--r-- 1 root root 2.9K Jun 27 21:48 autoindex.conf
+-rw-r--r-- 1 root root  691 Apr 13 03:04 php.conf
+-rw-r--r-- 1 root root  366 Jun 27 21:49 README
+-rw-r--r-- 1 root root 1.3K Jun 27 02:07 userdir.conf
+-rw-r--r-- 1 root root  824 Jun 27 02:07 welcome.conf
+-rw-r--r-- 1 root root  870 Jul 30 18:08 zabbix.conf
+#zabbix.conf为zabbix-web-mysql自动生成的文件
+
+[root@cm ~]# vim /etc/httpd/conf.d/zabbix.conf
+        php_value date.timezone Asia/Shanghai
+#将时区改为亚洲/上海
+
+浏览器访问本机ip/zabbix进行继续安装（http://192.168.31.71/zabbix）
+https://www.zabbix.com/documentation/3.0/manual/installation/install#installing_frontend
+Next step
+查看是否全为绿色OK
+Next step
+配置数据库
+Next step
+填写名字 Name: Zabbix server
+Next step
+Next step
+出现绿色Congratulations!表示成功安装
+生成配置文件：/etc/zabbix/web/zabbix.conf.php
+Finish
+
+登录
+初始密码Amin，密码zabbix
+
+配置zabbix server
+[root@cm ~]# vim /etc/zabbix/zabbix_server.conf
+115 DBPassword=123.Com
+
+[root@cm ~]# systemctl enable zabbix-server.service
+Created symlink from /etc/systemd/system/multi-user.target.wants/zabbix-server.service to /usr/lib/systemd/system/zabbix-server.service.
+[root@cm ~]# systemctl start zabbix-server.service
+#设置自启动并运行
+
+[root@cm ~]# netstat -lntup | grep 10051
+tcp        0      0 0.0.0.0:10051           0.0.0.0:*               LISTEN      2994/zabbix_server
+tcp6       0      0 :::10051                :::*                    LISTEN      2994/zabbix_server
+#查看10051端口
+
+
+客户机配置：
+
+[root@cm ~]# yum install zabbix-agent -y
+#安装zabbix-agent
+
+[root@cm ~]# vim /etc/zabbix/zabbix_agentd.conf
+ 95 Server=127.0.0.1
+136 ServerActive=127.0.0.1
+147 Hostname=Zabbix server
+#编辑客户机配置文件
+#Server表示允许哪个ip或主机可以获得本机的数据
+#ServerActive表示主动向哪个ip或主机发送本机的数据
+#Hostname表示主机名，可以使用系统主机名HostnameItem=system.hostname
+
+[root@cm ~]# systemctl enable zabbix-agent.service
+Created symlink from /etc/systemd/system/multi-user.target.wants/zabbix-agent.service to /usr/lib/systemd/system/zabbix-agent.service.
+[root@cm ~]# systemctl start zabbix-agent.service
+#设置自启动并启动
+
+[root@cm ~]# netstat -lntup | grep 1005*
+tcp        0      0 0.0.0.0:10050           0.0.0.0:*               LISTEN      3328/zabbix_agentd
+tcp        0      0 0.0.0.0:10051           0.0.0.0:*               LISTEN      2994/zabbix_server
+tcp6       0      0 :::10050                :::*                    LISTEN      3328/zabbix_agentd
+tcp6       0      0 :::10051                :::*                    LISTEN      2994/zabbix_server
+#查看
+
+
+zabbix前端页面
+
+Configuration--Hosts
+可以看到新启动zabbix-agent的机器，点击Disabled启用
+
+[root@cm ~]# tail -f /var/log/zabbix/zabbix_server.log
+#查看服务端日志
+
+客户端查看支持的item
+zabbix_agentd -p
+
+修改字体
+[root@cm ~]# cat /etc/httpd/conf.d/zabbix.conf
+......
+<Directory "/usr/share/zabbix">
+......
+#查看配置文件，确定zabbix网站目录
+[root@cm fonts]# pwd
+/usr/share/zabbix/fonts
+#进入站点目录的字体目录下
+[root@cm fonts]# ls -lh
+total 0
+lrwxrwxrwx 1 root root 33 Sep 30 16:41 graphfont.ttf -> /etc/alternatives/zabbix-web-font
+#上传一个字体，用raphfont.ttf名字把该软链接覆盖掉即可
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,124 @@
+一、sersync
+
+1.	下载，解压，规划目录结构
+
+[root@nfs ~]# cd /server/tools/
+[root@nfs tools]# wget --no-check-certificate https://raw.githubusercontent.com/orangle/sersync/master/release/sersync2.5.4_64bit_binary_stable_final.tar.gz
+
+[root@nfs tools]# tar zxvf sersync2.5.4_64bit_binary_stable_final.tar.gz
+GNU-Linux-x86/
+GNU-Linux-x86/sersync2
+GNU-Linux-x86/confxml.xml
+[root@nfs tools]# ls
+GNU-Linux-x86  sersync2.5.4_64bit_binary_stable_final.tar.gz
+
+[root@nfs tools]# mkdir /application
+[root@nfs tools]# mv GNU-Linux-x86/ /application/sersync
+[root@nfs tools]# cd /application/
+[root@nfs application]# tree
+.
+└── sersync
+    ├── confxml.xml
+    └── sersync2
+
+1 directory, 2 files
+
+[root@nfs application]# cd sersync/
+[root@nfs sersync]# mkdir bin conf logs
+[root@nfs sersync]# ls
+bin  conf  confxml.xml  logs  sersync2
+[root@nfs sersync]# mv sersync2 bin/sersync
+[root@nfs sersync]# mv confxml.xml conf/
+[root@nfs sersync]# tree .
+.
+├── bin
+│   └── sersync
+├── conf
+│   └── confxml.xml
+└── logs
+
+3 directories, 2 files
+
+
+2.	配置
+[root@nfs sersync]# cd /application/sersync/conf/
+[root@nfs conf]# cp confxml.xml{,.bak.ks.20181005}
+[root@nfs conf]# ls
+confxml.xml  confxml.xml.bak.ks.20181005
+
+[root@nfs conf]# vim confxml.xml
+ 24         <localpath watch="/data">
+ 25             <remote ip="172.16.11.22" name="nfsdata"/>
+
+ 30             <commonParams params="-avz"/>
+ 31             <auth start="true" users="ks_backup" passwordfile="/etc/rsync.ks.password"/>
+ 32             <userDefinedPort start="false" port="874"/>
+ 33             <timeout start="true" time="100"/>
+
+ 36         <failLog path="/application/sersync/logs/data_error.log" timeToExecute="60"/>
+ 37         <crontab start="true" schedule="600">
+
+
+同时目标主机需要在rsync中加入nfsdata模块，并设置好用户和密码，目标服务器接收serync的目录也需要设置好属组及属主
+
+
+3.	运行及测试
+[root@nfs conf]# /application/sersync/bin/sersync -d -r -o /application/sersync/conf/confxml.xml
+
+
+4.	设置自启动（方法，通过定时任务检查sersycn的状态，实现自启动）
+[root@nfs ~]# vim /server/scripts/sersync_check_status.sh
+#!/bin/sh
+### Keep sersync is runing by KevinnoTs 20181005 ###
+## export PAATH ##
+export PATH=/sbin:/bin:/usr/sbin:/usr/bin
+## Define var ##
+STAT_sersync=`ps -ef | grep -w 'sersync' | grep -v 'grep' | wc -l`
+PATH_sersync="/application/sersync/bin/sersync"
+PATH_conf="/application/sersync/conf/confxml.xml"
+## shell start ##
+if [ ${STAT_sersync} -eq 0 ];then
+    $PATH_sersync -d -r -o $PATH_conf &
+else
+    exit 0;
+fi
+
+[root@nfs ~]# crontab -e
+# Keep sersync is runing by KevinnoTs 20181005
+*/5 * * * * /bin/sh /server/scripts/sersync_check_status.sh >/dev/null 2>&1
+
+
+二、nfs
+
+[root@nfs ~]# mkdir /data/wordpress/uploads -p
+
+[root@nfs ~]# yum install -y nfs-utils rpcbind
+# 客户机，即web01，web02也需要安装这两个服务，只是不需要自启动nfs服务
+
+[root@nfs ~]# useradd -s /sbin/nologin -M www
+[root@nfs ~]# id www
+uid=1001(www) gid=1001(www) groups=1001(www)
+
+[root@nfs ~]# vim /etc/exports
+/data 172.16.11.0/24(rw,sync,all_squash,anonuid=1001,anongid=1001)
+## rw表示允许读写
+## sync为实时写入硬盘，安全性更高
+## all_squash客户机上的任何用户访问该共享目录时都映射成匿名用户
+## anonuid=1001将客户机上的用户映射成指定的本地用户ID的用户（即www用户）
+## nongid=1001将客户机上的用户映射成属于指定的本地用户组ID（即www用户组）
+
+[root@nfs ~]# systemctl list-unit-files | grep enabled
+# 确保rpcbind和nfs-server.service都是enabled状态，即开机自启动
+
+[root@nfs ~]# exportfs -a
+
+[root@nfs ~]# exportfs
+/data           172.16.11.0/24
+
+[root@nfs ~]# showmount 172.16.11.21
+Export list for 172.16.11.21:
+/data 172.16.11.0/24
+
+[root@nfs ~]# chown -R www.www /data
+
+编辑备份脚本，增加文件./etc/exports

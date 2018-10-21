@@ -1,0 +1,54 @@
+服务器规划：
+负载均衡服务器		两台		对访问网站的流量进行分流，减少流量对某台服务器的压力
+Web服务器			两台		处理用户页面访问请求（Nginx）
+NFS存储兼批量管理		一台		存储图片、附件等静态数据，兼批量分发和管理
+备份服务器			一台		对拳王服务器数据进行实时与定时备份（rsync）
+数据库服务器			一台		对动态变化的数据进行存储（MySQL）
+管理服务器			一台		作为yum仓库服务器、跳板机，操作审计、VPN（pptp）、监控服务（nagios、zabbix）
+
+服务器说明：					外网IP：						内网IP：				主机名：
+A1-nginx负载均衡服务器01		192.168.31.11/24（必须）		172.16.11.11/24		lb01
+A2-nginx负载均衡服务器02		192.168.31.12/24（必须）		172.16.11.12/24		lb02
+B1-nginx Web服务器01 		192.168.31.18/24			172.16.11.18/24		web01
+B2-nginx Web服务器02			192.168.31.19/24			172.16.11.19/24		web02
+C1-NFS存储服务器				192.168.31.21/24			172.16.11.21/24		nfs
+C2-rsync备份服务器			192.168.31.22/24			172.16.11.22/24		backup
+C3-MySQL数据库服务器			192.168.31.23/24			172.16.11.23/24		db01
+X1-管理服务器					192.168.31.81/24（必须）		172.16.11.81/24		m01
+
+负载均衡VIP					192.168.31.13/24（必须）
+
+HOST解析：
+修改/etc/hosts文件
+##### Ks Cluster Hosts ####
+172.16.11.11	lb01
+172.16.11.12	lb02
+172.16.11.18	web01
+172.16.11.19	web02
+172.16.11.21	nfs
+172.16.11.22	backup
+172.16.11.23	db01
+172.16.11.81	m01
+###########################
+
+集群母版机：	CM 			192.168.31.70	172.16.11.70
+
+
+CentOS 7变化
+1.	ifconfig 和 route 命令不默认安装，可使用ip命令替代
+2.	netstat 命令不默认安装，可使用ss命令替代
+3. 	网卡名称修改，优点为相同服务器相同插槽的名称一样，但是每台服务器都不是不同的，通过 net.ifnames=0 biosdevname=0 语句修改内核参数
+4.	nmtui 替代之前的setup（图形界面管理网络）
+5.	设置主机名命令hostnamectl set-hostname xxx
+6.	字符集命令localectl set-locale LANG=zh_CN.UTF-8
+7.	新增功能 timedatectl 修改时间时区，查看时间及格林威治时间
+8.	在原来 cat /etc/redhat-release 基础上，新增 cat /etc/os-release
+9.	chmod +x /etc/rc.d/rc.local 需要可执行权限，建议还是使用systemctl管理
+10.	systemd-analyze time 启动时间
+	systemd-analyze blame 每项服务启动需要的时间
+	systemd-analyze plot > bootime.svg 生成个页面，可以下载下来查看
+	http://www.jinbuguo.com/systemd/systemd.service.html
+11.	systemctl
+
+
+

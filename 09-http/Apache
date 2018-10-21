@@ -1,0 +1,209 @@
+httpd-2.2.34.tar.gz
+
+[root@web02 ~]# cd /home/ks/tools
+[root@web02 tools]# wget https://mirrors.tuna.tsinghua.edu.cn/apache/httpd/httpd-2.2.34.tar.gz
+[root@web02 tools]# tar xf httpd-2.2.34.tar.gz
+[root@web02 tools]# cd httpd-2.2.34
+[root@web02 tools]# less INSTALL
+[root@web02 tools]# less README
+[root@web02 httpd-2.2.34]# yum install zlib zlib-devel -y
+[root@web02 httpd-2.2.34]# ./configure --prefix=/application/apache-2.2.34 --enable-deflate --enable-expires --enable-headers --enable-modules=most --enable-so --with-mpm=worker --enable-rewrite
+## --prefix=/application/apache-2.2.34 安装路径
+## --enable-deflate 启用压缩功能，性能优化，nginx使用的是gzip
+## --enable-expires 启用客户端缓存
+## --with-mpm=worker 工作模式
+### worker模式：1、线程模式，2、占用资源少，3、稳定性略差，4、并发大
+### perfork模式：1、进程模式，2、占用资源多，3、稳定，4、并发一般
+### 关于工作模式有单独配置文件，需要在httpd.conf中打开该配置文件，并修改mpm配置文件优化工作模式
+[root@web02 httpd-2.2.34]# echo $?
+0
+[root@web02 httpd-2.2.34]# make
+[root@web02 httpd-2.2.34]# make install
+[root@web02 httpd-2.2.34]# cd /application/
+[root@web02 application]# ls
+apache-2.2.34
+[root@web02 application]# ln -s /application/apache-2.2.34/ /application/apache
+[root@web02 application]# ls -lh
+total 4.0K
+lrwxrwxrwx  1 root root   27 Sep 26 09:52 apache -> /application/apache-2.2.34/
+drwxr-xr-x 15 root root 4.0K Sep 26 09:51 apache-2.2.34
+
+[root@web02 application]# cd /application/apache/htdocs/
+[root@web02 htdocs]# mkdir www
+#创建站点目录
+
+[root@web02 htdocs]# cd /application/apache/conf/
+[root@web02 conf]# ls
+extra  httpd.conf  magic  mime.types  original
+#配置文件 httpd.conf
+
+[root@web02 conf]# vim httpd.conf
+Include conf/extra/httpd-vhosts.conf
+#取消该行注释，启用vhosts配置文件
+
+ServerName 127.0.0.1:80
+#修改 ServerName，解决语法中提示错误
+
+#Options Indexes FollowSymLinks
+#注释掉该行，取消无index文件列目录的功能
+
+[root@web02 conf]# cd extra/
+[root@web02 extra]# vim httpd-vhosts.conf
+
+<VirtualHost *:80>
+    ServerAdmin ks_linux_mail@163.com
+    DocumentRoot "/application/apache-2.2.34/htdocs/www"
+    ServerName gaolangxi.com
+    ServerAlias www.gaolangxi.com
+    ErrorLog "logs/www-error_log"
+    CustomLog "logs/www-access_log" common
+</VirtualHost>
+
+## *:80 表示所有网卡ip的80端口
+## ServerAdmin 管理员邮箱
+## DocumentRoot 站点目录
+## ServerName 域名
+## ServerAlias 别名
+## ErrorLog 错误日志
+## CustomLog 访问日志
+
+[root@web02 extra]# /application/apache/bin/apachectl -t
+httpd: Could not reliably determine the server's fully qualified domain name, using 172.16.1.7 for ServerName
+Syntax OK
+#检查配置文件语法
+
+[root@web02 extra]# cd ..
+[root@web02 conf]# vim httpd.conf
+ServerName 127.0.0.1:80
+#修改 ServerName，解决语法中提示错误
+
+[root@web02 conf]# /application/apache/bin/apachectl -t
+Syntax OK
+
+[root@web02 conf]# /application/apache/bin/apachectl start
+#启动apache
+
+[root@web02 conf]# /application/apache/bin/apachectl graceful
+#apache优雅重启
+
+
+
+PHP 5.3.29
+
+http://cn2.php.net/get/php-5.3.29.tar.gz/from/this/mirror
+
+[root@web02 ~]# cd /home/ks/tools
+[root@web02 tools]# tar xf php-5.3.29.tar.gz
+
+
+yum install -y zlib-devel libxml2-devel libjpeg-devel libjpeg-turbo-devel freetype-devel libpng-devel gd-devel libcurl-devel libxslt-devel libmcrypt-devel mhash mcrypt openssl-devel
+
+wget http://ftp.gnu.org/pub/gnu/libiconv/libiconv-1.15.tar.gz
+tar -zxvf libiconv-1.15.tar.gz
+cd libiconv-1.15
+./configure --prefix=/usr/local/libiconv
+make && make install
+
+#安装依赖包及可选功能包
+
+
+[root@web02 php-5.3.29]# ./configure \
+--prefix=/application/php-5.3.29 \
+--with-apxs2=/application/apache/bin/apxs \
+--with-mysql=mysqlnd \
+--with-pdo-mysql=mysqlnd \
+--with-curl \
+--with-freetype-dir \
+--with-gd \
+--with-iconv-dir=/usr/local/libiconv \
+--with-jpeg-dir \
+--with-libxml-dir=/usr \
+--with-mcrypt \
+--with-mhash \
+--with-openssl \
+--with-png-dir \
+--with-xmlrpc \
+--with-xsl \
+--with-zlib \
+--disable-rpath \
+--enable-bcmath \
+--enable-ftp \
+--enable-gd-native-ttf \
+--enable-inline-optimization \
+--enable-mbregex \
+--enable-mbstring \
+--enable-pcntl \
+--enable-shmop \
+--enable-short-tags \
+--enable-sockets \
+--enable-soap \
+--enable-static \
+--enable-sysvsem \
+--enable-xml
+
+## --with-apxs2=/application/apache/bin/apxs apache调用php的模块
+## 如果机器没有安装mysql，使用 --with-mysql=mysqlnd 替代 --with-mysql=/application/mysql
+#### --enable-mysqlnd \
+#### --with-mysqli=mysqlnd
+
+
+[root@web02 php-5.3.29]# make
+[root@web02 php-5.3.29]# make install
+
+[root@web02 application]# ln -s /application/php-5.3.29/ /application/php
+
+[root@web02 application]# ls -lh
+total 8.0K
+lrwxrwxrwx  1 root root   27 Sep 26 09:52 apache -> /application/apache-2.2.34/
+drwxr-xr-x 15 root root 4.0K Sep 26 09:51 apache-2.2.34
+lrwxrwxrwx  1 root root   24 Sep 26 12:18 php -> /application/php-5.3.29/
+drwxr-xr-x  7 root root 4.0K Sep 26 12:16 php-5.3.29
+
+配置httpd支持php
+
+[root@web02 application]# ls apache/modules/
+httpd.exp  libphp5.so
+
+[root@web02 application]# grep libphp5.so /application/apache/conf/httpd.conf
+LoadModule php5_module        modules/libphp5.so
+
+[root@web02 application]# vim /application/apache/conf/httpd.conf
+    AddType application/x-compress .Z
+    AddType application/x-gzip .gz .tgz
+
+    AddType application/x-httpd-php .php .phtml
+    AddType application/x-httpd-source .phps
+#在前面两行后面加入后面两行，模块支持php
+
+#搜索DirectoryIndex
+<IfModule dir_module>
+    DirectoryIndex index.php index.html
+</IfModule>
+#增加主页文件支持php
+
+User daemon
+Group daemon
+
+User www
+Group www
+#在前面两行后面加入后面两行，使用相同的用户及用户组
+
+[root@web02 application]# useradd www -s /sbin/nologin -M
+[root@web02 application]# id www
+uid=501(www) gid=501(www) groups=501(www)
+
+检查MySQL
+<?php
+
+	$link_id=mysql_connect('172.16.1.51','wpuser','123456') or mysql_error();
+	if($link_id){
+		echo "MySQL successful by KevinnoTs";
+	}else{
+		echo mysql_error();
+	}
+
+?>
+
+
+
+

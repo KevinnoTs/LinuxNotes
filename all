@@ -1963,7 +1963,27 @@ Linux 学习笔记
 		选项：
 			-l 设置位数
 
-104.	dig
+104.	dig 查看域名解析
+	[root@cm ~]# dig www.baidu.com
+
+	; <<>> DiG 9.9.4-RedHat-9.9.4-61.el7_5.1 <<>> www.baidu.com
+	;; global options: +cmd
+	;; Got answer:
+	;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 12592
+	;; flags: qr rd ra; QUERY: 1, ANSWER: 3, AUTHORITY: 0, ADDITIONAL: 0
+
+	;; QUESTION SECTION:
+	;www.baidu.com.                 IN      A
+
+	;; ANSWER SECTION:
+	www.baidu.com.          26297   IN      CNAME   www.a.shifen.com.
+	www.a.shifen.com.       135     IN      A       111.13.100.92
+	www.a.shifen.com.       135     IN      A       111.13.100.91
+
+	;; Query time: 13 msec
+	;; SERVER: 192.168.31.1#53(192.168.31.1)
+	;; WHEN: Fri Sep 28 12:35:38 CST 2018
+	;; MSG SIZE  rcvd: 90
 
 105.	wget 下载
 	选项：
@@ -2026,7 +2046,10 @@ Linux 学习笔记
 	/usr/share/man/man1/tree.1.gz
 	#查询tree包都安装了哪些文件
 
+110.	iconv 转码（convert text from one character encoding to another）
 
+	[root@web02 ~]# rpm -qf `which iconv`
+	glibc-common-2.12-1.212.el6.x86_64
 
 
 ##################################################

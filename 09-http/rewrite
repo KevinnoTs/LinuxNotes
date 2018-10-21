@@ -1,0 +1,113 @@
+wordpress
+
+1.	修改程序支持（wordpress后台设置）
+wp-admin --> Setting --> Permalinks
+Custom Structure : http://www.gaoqichen.com/archives/%post_id%.html
+Save Changes
+
+2.	修改nginx配置文件
+[root@web01 ~]# cd /application/nginx/conf/extra/
+[root@web01 ~]# cp www.conf{,.rewrite.ks.20180925}
+[root@web01 extra]# vim www.conf
+    server {
+        listen       80;
+        server_name  www.gaoqichen.com gaoqichen.com;
+        access_log  logs/www_access.log  main;
+        location / {
+            root   html/www/wordpress;
+            index  index.php index.html index.htm;
+        if (-f $request_filename/index.html){
+            rewrite (.*) $1/index.html break;
+        }
+        if (-f $request_filename/index.php){
+            rewrite (.*) $1/index.php;
+        }
+        if (!-f $request_filename){
+            rewrite (.*) /index.php;
+        }
+        }
+        location ~ .*\.(php|php5)?$ {
+            root   html/www/wordpress;
+            fastcgi_pass   127.0.0.1:9000;
+            fastcgi_index  index.php;
+            include   fastcgi.conf;
+        }
+    }
+[root@web01 extra]# /application/nginx/sbin/nginx -t
+nginx: the configuration file /application/nginx-1.12.2//conf/nginx.conf syntax is ok
+nginx: configuration file /application/nginx-1.12.2//conf/nginx.conf test is successful
+[root@web01 extra]# /application/nginx/sbin/nginx -s reload
+
+
+### 简化rewrite规则 ###
+        location / {
+                # This is cool because no php is touched for static content.
+                # include the "?$args" part so non-default permalinks doesn't break when using query string
+                try_files $uri $uri/ /index.php?$args;
+        }
+
+
+wordpress官网推荐niginx的配置文件
+
+General WordPress rules
+
+For single site installations, here is the 'global/wordpress.conf' file:
+
+# WordPress single site rules.
+# Designed to be included in any server {} block.
+# Upstream to abstract backend connection(s) for php
+upstream php {
+        server unix:/tmp/php-cgi.socket;
+        server 127.0.0.1:9000;
+}
+
+server {
+        ## Your website name goes here.
+        server_name domain.tld;
+        ## Your only path reference.
+        root /var/www/wordpress;
+        ## This should be in your http block and if it is, it's not needed here.
+        index index.php;
+
+        location = /favicon.ico {
+                log_not_found off;
+                access_log off;
+        }
+
+        location = /robots.txt {
+                allow all;
+                log_not_found off;
+                access_log off;
+        }
+
+        location / {
+                # This is cool because no php is touched for static content.
+                # include the "?$args" part so non-default permalinks doesn't break when using query string
+                try_files $uri $uri/ /index.php?$args;
+        }
+
+        location ~ \.php$ {
+                #NOTE: You should have "cgi.fix_pathinfo = 0;" in php.ini
+                include fastcgi.conf;
+                fastcgi_intercept_errors on;
+                fastcgi_pass php;
+                fastcgi_buffers 16 16k;
+                fastcgi_buffer_size 32k;
+        }
+
+        location ~* \.(js|css|png|jpg|jpeg|gif|ico)$ {
+                expires max;
+                log_not_found off;
+        }
+}
+
+This is more uptodate example for nginx v .10 and ↑. Ref: https://www.nginx.com/resources/wiki/start/topics/recipes/wordpress/
+
+
+
+
+
+
+
+
+

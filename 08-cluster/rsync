@@ -103,27 +103,27 @@ rsync 工作方式
 部署过程
 	部署服务
 		配置文件：/etc/rsyncd.conf，此文件默认不存在
-			# rsync config ____Start____
-			# created by ks at 2018/09/03
-			## rsyncd.conf start ##
-			uid = rsync 							#虚拟用户用户名
-			gid = rsync 							#虚拟用户用户组
-			use chroot = no 						#限定目录（yes,no,true,false）
-			max connections = 200 					#最大连接数
-			timeout = 300 							#超时时间（秒）
-			pid file = /var/run/rsyncd.pid 			#进程对应的进程号文件
-			lock file = /var/run/rsyncd.lock 		#锁文件，流程为锁文件--传输--解锁文件
-			log file = /var/run/rsyncd.log 			#日志文件
-			[backup] 								#模块名称
-			path = /backup 							#共享目录
-			ignore errors 							#忽略错误
-			read only = false 						#可写
-			list = false 							#禁止列表（ls）
-			hosts allow = 172.16.1.0/24 			#允许的网段（与拒绝的网段选一个启用）
-			#host deny = 0.0.0.0/32 				#拒绝的网段（与允许的网段选一个启用）
-			auth users = rsync_backup 				#连接的虚拟用户，非系统用户
-			secrets file = /etc/rsync.password 		#虚拟用户的账号密码文件
-			# rsync config ____End____
+# rsync config ____Start____
+# created by ks at 2018/09/03
+## rsyncd.conf start ##
+uid = rsync 							#虚拟用户用户名
+gid = rsync 							#虚拟用户用户组
+use chroot = no 						#限定目录（yes,no,true,false）
+max connections = 200 					#最大连接数
+timeout = 300 							#超时时间（秒）
+pid file = /var/run/rsyncd.pid 			#进程对应的进程号文件
+lock file = /var/run/rsyncd.lock 		#锁文件，流程为锁文件--传输--解锁文件
+log file = /var/run/rsyncd.log 			#日志文件
+[backup] 								#模块名称
+path = /backup 							#共享目录
+ignore errors 							#忽略错误
+read only = false 						#可写
+list = false 							#禁止列表（ls）
+hosts allow = 172.16.1.0/24 			#允许的网段（与拒绝的网段选一个启用）
+#host deny = 0.0.0.0/32 				#拒绝的网段（与允许的网段选一个启用）
+auth users = rsync_backup 				#连接的虚拟用户，非系统用户
+secrets file = /etc/rsync.password 		#虚拟用户的账号密码文件
+# rsync config ____End____
 
 		创建虚拟用户：
 			[root@backup ~]# useradd rsync -s /sbin/nologin -M
@@ -527,9 +527,9 @@ rsync 工作方式
 					#传输配置
 					 29         <rsync>
 					 30             <commonParams params="-avz"/>														#rsync命令传输参数，按需求改
-					 31             <auth start="ture" users="rsync_backup" passwordfile="/etc/rsync.password"/>		#传输用户，按需修改
+					 31             <auth start="true" users="rsync_backup" passwordfile="/etc/rsync.password"/>		#传输用户，按需修改
 					 32             <userDefinedPort start="false" port="874"/><!-- port=874 -->						#端口
-					 33             <timeout start="ture" time="100"/><!-- timeout=100 -->								#超时，建议开启
+					 33             <timeout start="true" time="100"/><!-- timeout=100 -->								#超时，建议开启
 					 34             <ssh start="false"/>
 					 35         </rsync>
 					#传输命令配置
@@ -550,23 +550,23 @@ rsync 工作方式
 				/application/sersync/bin/sersync -d -r -o /application/sersync/conf/confxml.xml
 		5.	为确保进程始终运行，可编写脚本加入定时任务
 			a.	编写脚本：vim /server/scripts/sersync_check.sh
-					#!/bin/sh
-					### Keep sersync is runing by KevinnoTs at 2018/09/05 ###
-					## export PAATH ##
-					export PATH=/sbin:/bin:/usr/sbin:/usr/bin
-					## Define var ##
-					STAT_sersync=`ps -ef | grep -w 'sersync' | grep -v 'grep' | wc -l`
-					PATH_sersync="/application/sersync/bin/sersync"
-					PATH_conf="/application/sersync/conf/confxml.xml"
-					## shell start ##
-					if [ ${STAT_sersync} -eq 0 ];then
-					    $PATH_sersync -d -r -o $PATH_conf &
-					else
-					    exit 0;
-					fi
+#!/bin/sh
+### Keep sersync is runing by KevinnoTs at 2018/09/05 ###
+## export PAATH ##
+export PATH=/sbin:/bin:/usr/sbin:/usr/bin
+## Define var ##
+STAT_sersync=`ps -ef | grep -w 'sersync' | grep -v 'grep' | wc -l`
+PATH_sersync="/application/sersync/bin/sersync"
+PATH_conf="/application/sersync/conf/confxml.xml"
+## shell start ##
+if [ ${STAT_sersync} -eq 0 ];then
+    $PATH_sersync -d -r -o $PATH_conf &
+else
+    exit 0;
+fi
 			b.	编写定时任务：crontab -e
-					# Keep sersync is runing by KevinnoTs at 2018/09/06
-					*/5 * * * * /bin/sh /server/scripts/sersync_check.sh >/dev/null 2>&1
+# Keep sersync is runing by KevinnoTs at 2018/09/06
+*/5 * * * * /bin/sh /server/scripts/sersync_check.sh >/dev/null 2>&1
 				[root@nfs01 scripts]# service crond reload
 				#重载定时任务
 
@@ -590,24 +590,6 @@ rsync 工作方式
 	4.	程序双写，直接写两台服务器
 	5.	业务逻辑解决（读写分离，备读不到，读主）
 	6.	nfs集群（1.4.5整合）：双写主存储，弃用nfs备份，用web服务器做备存储，直接读web本地。主存储使用inotify（sersync）+rsync推送。备没有找主，解决延迟问题。
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

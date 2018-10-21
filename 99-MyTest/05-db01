@@ -1,0 +1,226 @@
+一、yum安装
+
+[ks@db01 ~]$ yum install -y mysql mariadb-server
+......
+Installed:
+  mariadb.x86_64 1:5.5.60-1.el7_5
+
+Complete!
+
+
+[root@db01 ~]# useradd -s /sbin/nologin mysql -M
+[root@db01 ~]# id mysql
+uid=1001(mysql) gid=1001(mysql) groups=1001(mysql)
+
+
+[root@db01 ~]# mkdir /application/mysql/data -p
+[root@db01 ~]# mkdir /application/mysql/logs -p
+[root@db01 ~]# chown -R mysql.mysql /application/mysql/
+[root@db01 ~]# ls -hld /application/mysql/
+drwxr-xr-x 4 mysql mysql 30 Oct  5 01:55 /application/mysql/
+[root@db01 ~]# ls -hl /application/mysql/
+total 0
+drwxr-xr-x 2 mysql mysql 6 Oct  5 01:47 data
+drwxr-xr-x 2 mysql mysql 6 Oct  5 01:55 logs
+
+
+[root@db01 ~]# vim /etc/my.cnf
+[mysqld]
+datadir=/application/mysql/data
+# User-set by KevinnoTs
+user=mysql
+# User-set end
+
+[mysqld_safe]
+log-error=/application/mysql/logs/db_error.log
+
+
+[root@db01 ~]# mysql_secure_installation
+Enter current password for root (enter for none):
+#输入原密码，默认为空，回车
+Set root password? [Y/n]
+#是否设置密码，回车
+New password:
+#输入密码（123.Com）
+Re-enter new password:
+#重复输入密码
+Password updated successfully!
+Reloading privilege tables..
+ ... Success!
+Remove anonymous users? [Y/n]
+#删除匿名用户，回车
+Disallow root login remotely? [Y/n]
+#是否禁止root远程登录，回车
+Remove test database and access to it? [Y/n]
+#是否删除test数据库
+Reload privilege tables now? [Y/n]
+#是否重新加载权限表，回车
+
+
+[root@db01 ~]# mysql -uroot -p
+Enter password:
+#登录数据库
+
+
+MariaDB [(none)]> show databases;
++--------------------+
+| Database           |
++--------------------+
+| information_schema |
+| mysql              |
+| performance_schema |
++--------------------+
+3 rows in set (0.00 sec)
+
+MariaDB [(none)]> create database ks_wp_db;
+Query OK, 1 row affected (0.00 sec)
+
+MariaDB [(none)]> show databases;
++--------------------+
+| Database           |
++--------------------+
+| information_schema |
+| ks_wp_db           |
+| mysql              |
+| performance_schema |
++--------------------+
+4 rows in set (0.00 sec)
+
+MariaDB [(none)]> select user();
++----------------+
+| user()         |
++----------------+
+| root@localhost |
++----------------+
+1 row in set (0.00 sec)
+
+MariaDB [(none)]> select user,host from mysql.user;
++------+-----------+
+| user | host      |
++------+-----------+
+| root | 127.0.0.1 |
+| root | ::1       |
+| root | localhost |
++------+-----------+
+3 rows in set (0.00 sec)
+
+MariaDB [(none)]> grant all on ks_wp_db.* to ks_wp_user@'172.16.11.%' identified by '1qaz@WSX';
+Query OK, 0 rows affected (0.01 sec)
+
+MariaDB [(none)]> select user,host from mysql.user;
++------------+-------------+
+| user       | host        |
++------------+-------------+
+| root       | 127.0.0.1   |
+| ks_wp_user | 172.16.11.% |
+| root       | ::1         |
+| root       | localhost   |
++------------+-------------+
+4 rows in set (0.00 sec)
+
+MariaDB [(none)]> flush privileges;
+Query OK, 0 rows affected (0.01 sec)
+
+MariaDB [(none)]> quit
+Bye
+
+
+
+二、编译安装
+
+https://mariadb.com/kb/en/library/installing-mariadb-binary-tarballs/
+
+[root@db01 ~]# yum install -y libaio ncurses-devel
+
+[root@db01 ~]# cd /server/tools/
+[root@db01 ~]# rz
+rz waiting to receive.
+Starting zmodem transfer.  Press Ctrl+C to cancel.
+Transferring mysql-5.5.61-linux-glibc2.12-x86_64.tar.gz...
+  100%  193974 KB    3958 KB/sec    00:00:49       0 Errors
+
+[root@db01 ~]# tar xf mysql-5.5.61-linux-glibc2.12-x86_64.tar.gz
+[root@db01 ~]# mv mysql-5.5.61-linux-glibc2.12-x86_64/ /application/mysql-5.5.61
+[root@db01 ~]# ln -s /application/mysql-5.5.61/ /application/mysql
+[root@db01 ~]# ls -lh /application/
+total 0
+lrwxrwxrwx  1 root root  13 Oct  6 23:38 mysql -> mysql-5.5.61/
+drwxr-xr-x 13 root root 213 Oct  6 23:37 mysql-5.5.61
+
+[root@db01 ~]# useradd -s /sbin/nologin mysql -M
+[root@db01 ~]# id mysql
+uid=1001(mysql) gid=1001(mysql) groups=1001(mysql)
+
+[root@db01 ~]# chown -R mysql.mysql /application/mysql/
+[root@db01 ~]# ls -lh /application/
+total 0
+lrwxrwxrwx  1 root  root   13 Oct  6 23:38 mysql -> mysql-5.5.61/
+drwxr-xr-x 13 mysql mysql 213 Oct  6 23:37 mysql-5.5.61
+
+[root@db01 ~]# /application/mysql/scripts/mysql_install_db --basedir=/application/mysql --datadir=/application/mysql/data/ --user=mysql
+# 出现两个ok表示安装成功（MySQL不用编译，解压缩可以直接用）
+
+[root@db01 ~]# sed -in 's#/usr/local/#/application/#gp' /application/mysql/bin/mysqld_safe
+# 修改配置文件，将安装文件地址改为自己的
+
+[root@db01 ~]# cp /application/mysql/support-files/my-small.cnf /etc/my.cnf
+cp: overwrite ‘/etc/my.cnf’? y
+# 复制并覆盖配置文件
+
+[root@db01 ~]# vim /etc/my.cnf
+[mysqld]
+basedir = /application/mysql
+datadir = /application/mysql/data
+user=mysql
+
+	[mysqld_safe]
+	log-error=/application/mysql/logs/mysql_err.log
+	pid-file=/application/mysql/data/mysql.pid
+
+
+[root@db01 ~]# echo 'export PATH=/application/mysql/bin:$PATH'>>/etc/profile
+# Add MySQL PATH by KevinnoTs 20181007
+[root@db01 ~]# source /etc/profile
+# 增加MySQL地址进系统环境变量
+
+
+[root@db01 ~]# touch /usr/lib/systemd/system/mysqld.service
+[root@db01 ~]# vim /usr/lib/systemd/system/mysqld.service
+
+[Unit]
+Description=MySQL Server
+Documentation=http://dev.mysql.com/doc/refman/en/using-systemd.html
+After=network.target
+After=syslog.target
+
+[Install]
+WantedBy=multi-user.target
+
+[Service]
+User=mysql
+Group=mysql
+PIDFile=/var/run/mysqld/mysqld.pid
+PermissionsStartOnly=true
+ExecStart=/application/mysql/bin/mysqld
+LimitNOFILE = 5000
+TimeoutSec=600
+Restart=always
+PrivateTmp=false
+
+[root@db01 ~]# systemctl daemon-reload
+[root@db01 mysql]# systemctl enable mysqld.service
+Created symlink from /etc/systemd/system/multi-user.target.wants/mysqld.service to /usr/lib/systemd/system/mysqld.service.
+[root@db01 mysql]# systemctl start mysqld.service
+
+
+[root@db01 ~]# /application/mysql/bin/mysql_secure_installation
+# 回车--y--新密码--重复密码--回车--回车--回车--回车
+
+[root@db01 ~]# mysql -uroot -p
+Enter password:
+mysql>
+
+
+编辑备份脚本，增加文件
+./usr/lib/systemd/system/mysqld.service
+./etc/my.cnf

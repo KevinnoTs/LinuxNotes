@@ -1,0 +1,534 @@
+一、yum安装
+
+1. 	nginx
+
+[root@web01 ~]# yum install -y nginx
+[root@web01 ~]# yum install -y pcre pcre-devel
+[root@web01 ~]# yum install -y openssl-devel
+[root@web01 ~]# yum install -y gcc gcc-c++
+
+
+[root@web01 ~]# useradd www -s /sbin/nologin -M
+[root@web01 ~]# id www
+uid=1001(www) gid=1001(www) groups=1001(www)
+
+[root@web01 ~]# mkdir /application/nginx/logs -p
+[root@web01 ~]# mkdir /application/nginx/html -p
+[root@web01 ~]# chown -R www.www /application/nginx/
+[root@web01 ~]# ls -lhd /application/nginx/
+drwxr-xr-x 4 www www 30 Oct  5 02:43 /application/nginx/
+[root@web01 ~]# ls -lh /application/nginx/
+total 0
+drwxr-xr-x 3 www www 17 Oct  5 02:43 html
+drwxr-xr-x 2 www www  6 Oct  5 02:43 logs
+
+[root@web01 ~]# nginx -t
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+
+
+[root@web01 ~]# vim /etc/nginx/nginx.conf
+user www;
+error_log /application/nginx/logs/nginx_error.log;
+
+http {
+    access_log  /application/nginx/logs/nginx_access.log  main;
+
+    include /etc/nginx/conf.d/www.conf;
+}
+
+# server {}
+# 整个server标签都注释掉
+
+[root@web01 ~]# vim /etc/nginx/conf.d/www.conf
+    server {
+        listen       80;
+        server_name  www.gaoqichen.com gaoqichen.com;
+        location / {
+            root   /application/nginx/html/www/;
+            index  index.php index.html index.htm;
+        }
+    }
+
+[root@web01 ~]# nginx -t
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+
+[root@web01 ~]# systemctl enable nginx.service
+Created symlink from /etc/systemd/system/multi-user.target.wants/nginx.service to /usr/lib/systemd/system/nginx.service.
+[root@web01 ~]# systemctl start nginx.service
+
+
+2.	php
+[root@web01 ~]# yum install -y php php-fpm
+
+[root@web01 ~]# rpm -qa zlib-devel libxml2-devel libjpeg-turbo-devel libiconv-devel freetype-devel libpng-devel gd-devel libcurl-devel libxslt-devel
+zlib-devel-1.2.7-17.el7.x86_64
+
+[root@web01 ~]# yum install -y libxml2-devel libjpeg-turbo-devel freetype-devel
+[root@web01 ~]# yum install -y libpng-devel gd-devel libcurl-devel libxslt-devel
+[root@web01 ~]# yum install -y libmcrypt-devel mhash mcrypt
+
+[root@web01 ~]# cd /server/tools/
+[root@web01 tools]# wget http://ftp.gnu.org/pub/gnu/libiconv/libiconv-1.15.tar.gz
+[root@web01 tools]# tar -zxvf libiconv-1.15.tar.gz
+[root@web01 tools]# cd libiconv-1.15
+[root@web01 libiconv-1.15]# ./configure --prefix=/usr/local/libiconv
+[root@web01 libiconv-1.15]# make && make install
+
+[root@web01 ~]# systemctl enable php-fpm.service
+Created symlink from /etc/systemd/system/multi-user.target.wants/php-fpm.service to /usr/lib/systemd/system/php-fpm.service.
+[root@web01 ~]# systemctl start php-fpm.service
+
+[root@web01 ~]# vim /etc/php-fpm.d/www.conf
+ 39 user = www
+ 41 group = www
+
+[root@web01 ~]# systemctl restart php-fpm.service
+
+[root@web01 ~]# vim /etc/nginx/conf.d/www.conf
+
+        location ~ .*\.(php|php5)?$ {
+            root   /application/nginx/html/www/;
+            fastcgi_pass   127.0.0.1:9000;
+            fastcgi_index  index.php;
+            include   fastcgi.conf;
+        }
+
+[root@web01 ~]# nginx -t
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+
+[root@web01 ~]# nginx -s reload
+
+[root@web01 ~]# vim /application/nginx/html/www/index.php
+<?php
+phpinfo();
+?>
+
+
+
+
+二、编译安装
+
+1. 	nginx
+
+[root@web01 ~]# yum install -y pcre pcre-devel openssl-devel gcc gcc-c++
+
+[root@web01 ~]# cd /server/tools/
+[root@web01 tools]# rz
+rz waiting to receive.
+Starting zmodem transfer.  Press Ctrl+C to cancel.
+Transferring nginx-1.12.2.tar.gz...
+  100%     958 KB     958 KB/sec    00:00:01       0 Errors
+
+
+[root@web01 tools]# tar xf nginx-1.12.2.tar.gz
+[root@web01 tools]# cd nginx-1.12.2/
+[root@web01 nginx-1.12.2]# useradd www -s /sbin/nologin -M
+[root@web01 nginx-1.12.2]# id www
+uid=1001(www) gid=1001(www) groups=1001(www)
+
+[root@web01 nginx-1.12.2]# ./configure --user=www --group=www --with-http_stub_status_module --with-http_ssl_module --prefix=/application/nginx-1.12.2/
+[root@web01 nginx-1.12.2]# echo $?
+0
+
+[root@web01 nginx-1.12.2]# make
+[root@web01 nginx-1.12.2]# echo $?
+0
+
+[root@web01 nginx-1.12.2]# make install
+[root@web01 nginx-1.12.2]# echo $?
+0
+
+root@web01 nginx-1.12.2]# ln -s /application/nginx-1.12.2/ /application/nginx
+[root@web01 nginx-1.12.2]# cd /application/
+[root@web01 application]# ll
+total 0
+lrwxrwxrwx 1 root root 26 Oct  7 01:37 nginx -> /application/nginx-1.12.2/
+drwxr-xr-x 6 root root 54 Oct  7 01:36 nginx-1.12.2
+
+[root@web01 nginx]# cd /application/nginx/conf/
+[root@web01 conf]# egrep -v "^$|#" nginx.conf.default > nginx.conf
+# 精简配置文件
+
+[root@web01 conf]# mkdir extra
+[root@web01 conf]# touch extra/www.conf
+
+[root@web01 conf]# vim extra/www.conf
+    server {
+        listen       80;
+        server_name  localhost;
+        location / {
+            root   html;
+            index  index.html index.htm;
+        }
+        error_page   500 502 503 504  /50x.html;
+        location = /50x.html {
+            root   html;
+        }
+    }
+
+[root@web01 conf]# vim nginx.conf
+worker_processes  auto;
+worker_cpu_affinity  auto;
+worker_rlimit_nofile 10000;
+
+error_log /application/nginx/logs/error.log warn;
+
+events {
+    use epoll;
+    worker_connections  10240;
+}
+
+http {
+    include       mime.types;
+    default_type  application/octet-stream;
+    charset       utf-8;
+    log_format    main  '$remote_addr - $remote_user [$time_local] "$request" '
+                        '$status $body_bytes_sent "$http_referer" '
+                        '"$http_user_agent" "$http_x_forwarded_for"';
+    access_log    /application/nginx/logs/access.log  main;
+    sendfile      on;
+    tcp_nopush    on;
+    tcp_nodelay   on;
+    keepalive_timeout  65;
+
+    gzip               on;
+    gzip_disable       "MSIE [1-6]\.";
+    gzip_http_version  1.1;
+
+    include       extra/www.conf;
+}
+
+https://www.xuliangwei.com/xubusi/1028.html
+
+
+# 修改配置文件，主配置文件使用include语句加载其他配置文件，每个虚拟机站点可以创建独立的配置文件，只包含server标签
+
+
+[root@web01 ~]# touch /usr/lib/systemd/system/nginx.service
+[root@web01 ~]# vim /usr/lib/systemd/system/nginx.service
+[Unit]
+Description=Nginx web server
+After=network.target remote-fs.target nss-lookup.target
+
+[Service]
+Type=forking
+PIDFile=/application/nginx/logs/nginx.pid
+ExecStart=/application/nginx/sbin/nginx
+ExecReload=/application/nginx/sbin/nginx -s reload
+ExecStop=/application/nginx/sbin/nginx -s stop
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
+
+
+[root@web01 ~]# systemctl daemon-reload
+[root@web01 ~]# /application/nginx/sbin/nginx -s stop
+[root@web01 ~]# systemctl start nginx.service
+[root@web01 ~]# systemctl enable nginx.service
+Created symlink from /etc/systemd/system/multi-user.target.wants/nginx.service to /usr/lib/systemd/system/nginx.service.
+
+[root@web01 ~]# vim /etc/profile
+# Add MySQL PATH by KevinnoTs 20181008
+export PATH=/application/nginx/sbin:$PATH
+
+[root@web01 ~]# source /etc/profile
+
+编辑备份脚本，增加文件/usr/lib/systemd/system/nginx.service
+
+参考文档：https://www.nginx.com/resources/wiki/
+
+
+
+2.	php
+
+[root@web01 ~]# yum install -y libxml2-devel libjpeg-turbo-devel freetype-devel libpng-devel gd-devel libcurl-devel libxslt-devel libmcrypt-devel mhash mcrypt
+
+[root@web01 ~]# cd /server/tools/
+[root@web01 tools]# wget http://ftp.gnu.org/pub/gnu/libiconv/libiconv-1.15.tar.gz
+[root@web01 tools]# tar xf libiconv-1.15.tar.gz
+[root@web01 tools]# cd libiconv-1.15/
+[root@web01 libiconv-1.15]# ./configure --prefix=/usr/local/libiconv
+[root@web01 libiconv-1.15]# echo $?
+0
+[root@web01 libiconv-1.15]# make && make install
+[root@web01 libiconv-1.15]# echo $?
+0
+
+[root@web01 libiconv-1.15]# cd /server/tools/
+[root@web01 tools]# rz
+[root@web01 tools]# tar xf php-5.6.38.tar.gz
+[root@web01 tools]# cd php-5.6.38/
+
+[root@web01 php-5.6.38]# ./configure --help
+# 查看构建php配置帮助
+
+[root@web01 php-5.6.38]# ./configure --prefix=/application/php-5.6.38 --enable-fpm --with-mysql
+# 仅进行包含PHP-FPM和MySQL支持的简单配置
+
+[root@web01 php-5.6.38]# ./configure \
+--prefix=/application/php-5.6.38 \
+--with-mysql=mysqlnd \
+--with-pdo-mysql=mysqlnd \
+--with-fpm-user=www \
+--with-fpm-group=www \
+--with-curl \
+--with-freetype-dir \
+--with-gd \
+--with-iconv-dir=/usr/local/libiconv \
+--with-jpeg-dir \
+--with-libxml-dir=/usr \
+--with-mcrypt \
+--with-mhash \
+--with-openssl \
+--with-png-dir \
+--with-xmlrpc \
+--with-xsl \
+--with-zlib \
+--disable-rpath \
+--enable-bcmath \
+--enable-fpm \
+--enable-ftp \
+--enable-gd-native-ttf \
+--enable-inline-optimization \
+--enable-mbregex \
+--enable-mbstring \
+--enable-opcache=no \
+--enable-pcntl \
+--enable-shmop \
+--enable-short-tags \
+--enable-sockets \
+--enable-soap \
+--enable-static \
+--enable-sysvsem \
+--enable-xml
+# 常用基础配置，打开常用的一些功能
+# 其中如果本机有MySQL，使用 --with-mysql=/application/mysql
+# 如果本机没有安装MySQL，使用 --with-mysql=mysqlnd
+# --with-fpm-user=www和--with-fpm-group=www 最好和nginx保持一致
+# --enable-fpm 使用nginx必开
+
+[root@web01 php-5.6.38]# make
+[root@web01 php-5.6.38]# make install
+
+[root@web01 php-5.6.38]# cp php.ini-production /application/php-5.6.38/lib/php.ini
+[root@web01 php-5.6.38]# cd /application/
+
+[root@web01 application]# ln -s /application/php-5.6.38/ /application/php
+[root@web01 application]# ls -lh /application/
+total 0
+lrwxrwxrwx  1 root root  26 Oct  7 01:37 nginx -> /application/nginx-1.12.2/
+drwxr-xr-x 11 root root 151 Oct  7 01:40 nginx-1.12.2
+lrwxrwxrwx  1 root root  24 Oct  8 01:08 php -> /application/php-5.6.38/
+drwxr-xr-x  9 root root  88 Oct  8 01:04 php-5.6.38
+
+[root@web01 application]# vim /application/php/lib/php.ini
+
+ 363 expose_php = Off
+# 隐藏版本号，关闭php头部信息，默认是On，改为Off
+
+ 393 memory_limit = 128M
+# 每个脚本时间最大内存
+
+ 449 error_reporting = E_WARNING & E_ERROR
+ 466 display_errors = Off
+# 错误信息输出控制
+
+ 487 log_errors = On
+ 572 error_log = /application/php/var/log/php_errors.log
+# php错误日志
+
+ 771 cgi.fix_pathinfo=0
+# 如果文件不存在，则阻止 Nginx 将请求发送到后端的 PHP-FPM 模块， 以避免遭受恶意脚本注入的攻击
+
+ 820 upload_max_filesize = 2M
+# 上传文件最大许可，根据需求设置
+
+ 831 allow_url_fopen = Off
+# 禁止远程执行phpshell，默认是On，改为Off
+
+ 936 date.timezone = Asia/Shanghai
+# 时区设置，默认为PRC，修改为Asia/Shanghai
+
+1055 sql.safe_mode = Off
+# 改选项控制是否允许源码里出现数据库用户名及密码，如果选择On，则php程序很有可能只允许无密码root连接localhost
+
+
+
+[root@web01 application]# cd php/etc
+[root@web01 etc]# cp php-fpm.conf.default php-fpm.conf
+
+[root@web01 etc]# vim /application/php/etc/php-fpm.conf
+
+[global]
+pid = /application/php/var/run/php-fpm.pid
+error_log = /application/php/var/log/php-fpm.log
+log_level = warning
+rlimit_files = 655350
+events.mechanism = epoll
+
+[www]
+user = www
+group = www
+listen = 127.0.0.1:9000
+listen.allowed_clients = 127.0.0.1
+pm.max_children = 512
+pm.start_servers = 10
+pm.min_spare_servers = 10
+pm.max_spare_servers = 30
+pm.process_idle_timeout = 15s;
+pm.max_requests = 2048
+
+slowlog = /application/php/var/log/php-$pool-slow.log
+request_slowlog_timeout = 5s
+
+php_flag[display_errors] = off
+php_admin_value[error_log] = /application/php/var/log/php-www-error.log
+php_admin_flag[log_errors] = on
+
+
+https://www.xuliangwei.com/xubusi/1024.html
+
+
+[root@web01 etc]# vim /usr/lib/systemd/system/php.service
+[Unit]
+Description=The PHP FastCGI Process Manager
+After=syslog.target network.target
+
+[Service]
+Type=forking
+ExecStart=/application/php/sbin/php-fpm
+ExecStop=/bin/kill -SIGINT $MAINPID
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
+
+
+[root@web01 etc]# systemctl daemon-reload
+[root@web01 etc]# systemctl start php.service
+[root@web01 etc]# systemctl enable php.service
+Created symlink from /etc/systemd/system/multi-user.target.wants/php.service to /usr/lib/systemd/system/php.service.
+
+
+http://php.net/manual/zh/install.unix.nginx.php
+
+
+3.	nginx调用php-fpm
+
+[root@web01 ~]# vim /application/nginx/conf/extra/www.conf
+        location / {
+            root   html/www;
+            index  index.php index.html index.htm;
+        }
+        location ~ .*\.(php|php5)?$ {
+            root           html/www;
+            fastcgi_pass   127.0.0.1:9000;
+            fastcgi_index  index.php;
+            include        fastcgi.conf;
+        }
+
+[root@web01 ~]# nginx -t
+nginx: the configuration file /application/nginx-1.12.2//conf/nginx.conf syntax is ok
+nginx: configuration file /application/nginx-1.12.2//conf/nginx.conf test is successful
+[root@web01 ~]# nginx -s reload
+
+[root@web01 ~]# mkdir /application/nginx/html/www
+[root@web01 ~]# echo "<?php phpinfo(); ?>" >>/application/nginx/html/www/index.php
+# 测试php
+
+[root@web01 ~]# vim /application/nginx/html/www/index.php
+<?php
+
+	$link_id=mysql_connect('172.16.11.23','ks_wp_user','1qaz@WSX') or mysql_error();
+	if($link_id){
+		echo "MySQL successful by KevinnoTs";
+	}else{
+		echo mysql_error();
+	}
+
+?>
+# 测试远程数据库
+
+
+
+编辑备份脚本，增加文件
+./usr/lib/systemd/system/php.service ./application/nginx/conf/nginx.conf \
+./application/nginx/conf/extra/www.conf ./application/php/etc/php-fpm.conf \
+./application/php/lib/php.ini
+
+
+
+三、wordpress
+
+[root@web01 ~]# cd /server/tools/
+[root@web01 tools]# wget https://wordpress.org/latest.tar.gz
+[root@web01 tools]# mv latest.tar.gz wordpress-4.9.8.tar.gz
+
+[root@web01 tools]# tar xf wordpress-4.9.8.tar.gz
+[root@web01 tools]# mv wordpress /application/nginx/html/www/
+
+[root@web01 tools]# cd /application/nginx/conf/extra
+[root@web01 extra]# vim www.conf
+    server {
+        listen       80;
+        server_name  www.gaoqichen.com;
+
+        location / {
+            root   html/www/wordpress;
+            index  index.php index.html index.htm;
+        }
+
+        error_page   500 502 503 504  /50x.html;
+        location = /50x.html {
+            root   html;
+        }
+
+        location ~* \.php$ {
+            root            html/www/wordpress;
+            fastcgi_index   index.php;
+            fastcgi_pass    127.0.0.1:9000;
+            include         fastcgi.conf;
+        }
+    }
+
+[root@web01 extra]# nginx -t
+nginx: the configuration file /application/nginx-1.12.2//conf/nginx.conf syntax is ok
+nginx: configuration file /application/nginx-1.12.2//conf/nginx.conf test is successful
+[root@web01 extra]# nginx -s reload
+
+[root@web01 extra]# chown -R www.www /application/nginx/html
+
+浏览器安装wordpress
+
+Database Name	ks_wp_db
+Username 		ks_wp_user
+Password 		1qaz@WSX
+Database Host 	172.16.11.23
+Table Prefix 	kswpdb_
+
+
+安装完成，将/application/nginx/html/www/wordpress 整个文件夹打包上传到web02上，解压并修改配置授权
+
+
+四、挂载nfs
+
+yum install -y nfs-utils rpcbind
+
+showmount -e 172.16.11.21
+
+mount -t nfs 172.16.11.21:/data/wordpress/uploads /application/nginx/html/www/wordpress/wp-content/uploads/
+
+df -h
+
+vim /etc/fstab
+# Mout nfs by KevinnoTs 20181008
+# mount -t nfs 172.16.11.21:/data/wordpress/uploads \
+# /application/nginx/html/www/wordpress/wp-content/uploads/
+172.16.11.21:/data/wordpress/uploads /application/nginx/html/www/wordpress/wp-content/uploads/ nfs
+ defaults 0 0
+
+编辑备份脚本，增加文件./etc/fstab

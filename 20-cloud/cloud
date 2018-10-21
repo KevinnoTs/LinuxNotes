@@ -1,0 +1,56 @@
+云计算是一种运行模式，方便，快捷，按量计费，随时扩充
+
+云计算包括公有云、私有云、混合云
+
+Packaged SoftWare
+	You manage
+		Applications
+		Data
+		Runtime
+		Middleware
+		O/S
+		Virtualization
+		Servers
+		Storage
+		Networking
+
+Infrastructure (as a Service)
+	You manage
+		Applications
+		Data
+		Runtime
+		Middleware
+		O/S
+	Managed by vendor
+		Virtualization
+		Servers
+		Storage
+		Networking
+
+Platform (as a Service)
+	You manage
+		Applications
+		Data
+	Managed by vendor
+		Runtime
+		Middleware
+		O/S
+		Virtualization
+		Servers
+		Storage
+		Networking
+
+SoftWare (as a Service)
+	Managed by vendor
+		Applications
+		Data
+		Runtime
+		Middleware
+		O/S
+		Virtualization
+		Servers
+		Storage
+		Networking
+
+云计算不等于虚拟化
+云计算需要使用虚拟化技术

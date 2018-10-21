@@ -8,7 +8,7 @@
 #### export PATH
 export PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin:/root/bin
 
-#### Define var ##
+#### Define var
 date=$(date +%F)
 
 #### Shell start

@@ -234,7 +234,7 @@ Linux系统安全最小化原则：
 	#只显示网络设置中的Active那一行信息
 	#	loaded				系统服务已经初始化完成，加载过配置
 	#	active（running）	正有一个或多个程序正在系统中执行，vsftpd就是这种模式
-	#	atcive（exited）	仅执行一次就正常结束的服务，目前并没有任何程序在系统中执行
+	#	atcive（exited）		仅执行一次就正常结束的服务，目前并没有任何程序在系统中执行
 	#	atcive（waiting）	正在执行当中，不过还在等待其他事件才能继续处理
 	#	inactive			服务关闭
 	#	enbaled				服务开机启动
@@ -260,7 +260,7 @@ Linux系统安全最小化原则：
 	#查看主机名
 	[root@Ks-CentOS-6 ~]# hostname TestVM1
 	#设置当前主机名，立即生效
-	[root@Ks-CentOS-6 ~]# hostnamectl set-hostname TestVM1
+	[root@Ks-CentOS-7 ~]# hostnamectl set-hostname TestVM1
 	#永久设置主机名为TestVM1并立即生效（CentOS 7+）
 	[root@Ks-CentOS-6 ~]# vim /etc/sysconfig/network
 	#编辑network文件修改hostname行，重启生效（CentOS 6及以前版本）
@@ -269,7 +269,7 @@ Linux系统安全最小化原则：
 
 
 14.	时间同步
-	[root@localhost ~]# echo '# Time sync by KevinnoTs at 2018/08/31' >>/var/spool/cron/root
+	[root@localhost ~]# echo '# Time sync by KevinnoTs 20181009' >>/var/spool/cron/root
 	[root@localhost ~]# echo '*/5 * * * * /usr/sbin/ntpdate ntp1.aliyun.com >/dev/null 2>&1' >>/var/spool/cron/root
 	#使用定时任务，每5分钟同步一次时间
 	[root@localhost ~]# crontab -l
@@ -358,7 +358,12 @@ EOF
 		UseDNS no
 	#也可使用脚本ssh_conf_opt.sh
 
-20.	基本设置已完成，如果是虚拟机或vps建议制作快照，并克隆为母版机以备以后使用
+20.	CentOS7修改系统语言
+	vim /etc/locale.conf
+	LANG="en_US.UTF-8"
+	LANG="zh_CN.UTF-8"
+
+21.	基本设置已完成，如果是虚拟机或vps建议制作快照，并克隆为母版机以备以后使用
 
 
 88.	工作场景优化总结

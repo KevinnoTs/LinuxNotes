@@ -133,6 +133,9 @@ mysql>
 [root@db01 tmp]# /application/mysql/bin/mysql -uroot -p123456
 mysql> grant all on wordpress.* to wpuser@'172.16.1.%' identified by '123456';
 
+用户授权规范语法：
+grant all privileges on 'db.table' to 'user'@'host' identified by 'password';
+
 10.	查看用户
 mysql> select user,host from mysql.user;
 +--------+------------+

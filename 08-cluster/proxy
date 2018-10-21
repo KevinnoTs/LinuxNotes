@@ -1,0 +1,188 @@
+Nginx Proxy 反向代理 功能表现的是负载均衡集群的效果
+
+nginx 	L7（七层负载均衡）
+LVS 	L4（四层负载均衡）
+haproxy	L4 L7
+
+nginx负载均衡的组件：
+ngx_http_proxy_module 		proxy代理模块，用于把请求后抛给服务器节点或upstream服务器池
+http://nginx.org/en/docs/http/ngx_http_proxy_module.html
+
+ngx_http_upstream_module 	负载均衡模块，可以实现网站的负载均衡功能及节点的健康检查
+http://nginx.org/en/docs/http/ngx_http_upstream_module.html
+
+Example Configuration
+
+    upstream backend {
+    	ip_hash;
+        server backend1.example.com       weight=5;
+        server backend2.example.com:8080;
+        server unix:/tmp/backend3;
+
+        server backup1.example.com:8080   backup;
+        server backup2.example.com:8080   backup;
+    }
+
+    server {
+        location / {
+            proxy_pass http://backend;
+        }
+    }
+
+## ip_hash 表示相同IP地址不从新分配服务器，解决会话问题（虽然可以解决，但会导致负载不均）
+## backend 为定义的upstream名称
+### server 每一行为一个web服务器
+### 后面可以是域名或IP地址，后面接端口号，默认是80
+### weight 为权重，权重大的处理请求就多
+### backup 表示为热备
+## server标签调用upstream
+
+
+
+安装负载均衡
+
+
+1.	安装，即安装nginx
+[root@lb01 ~]# yum install pcre pcre-devel openssl openssl-devel -y
+
+[root@lb01 ~]# mkdir -p /home/ks/tools
+[root@lb01 ~]# cd /home/ks/tools
+[root@lb01 tools]# wget -q http://nginx.org/download/nginx-1.12.2.tar.gz
+#-q为静默下载
+[root@lb01 tools]# tar xf nginx-1.12.2.tar.gz
+
+[root@lb01 tools]# useradd www -s /sbin/nologin -M
+[root@lb01 tools]# id www
+uid=501(www) gid=501(www) groups=501(www)
+#负载均衡可以不用和nginx服务器相同用户，但负载均衡服务器使用用户尽量相同
+
+[root@lb01 tools]# cd nginx-1.12.2
+[root@lb01 nginx-1.12.2]# ./configure --user=www --group=www --with-http_stub_status_module --with-http_ssl_module --prefix=/application/nginx-1.12.2/
+
+[root@lb01 nginx-1.12.2]# make && make install
+
+[root@lb01 nginx-1.12.2]# ln -s /application/nginx-1.12.2/ /application/nginx
+
+[root@lb01 nginx-1.12.2]# cd /application/
+[root@lb01 application]# ls -lh
+total 4.0K
+lrwxrwxrwx 1 root root   26 Sep 26 14:27 nginx -> /application/nginx-1.12.2/
+drwxr-xr-x 6 root root 4.0K Sep 26 14:25 nginx-1.12.2
+
+[root@lb01 conf]# egrep -v "^$|#" /application/nginx/conf/nginx.conf.default > /application/nginx/conf/nginx.conf
+#生成默认配置文件，删除注释及空行
+
+[root@lb01 conf]# /application/nginx/sbin/nginx -t
+nginx: the configuration file /application/nginx-1.12.2//conf/nginx.conf syntax is ok
+nginx: configuration file /application/nginx-1.12.2//conf/nginx.conf test is successful
+
+2.	配置负载均衡
+
+[root@lb01 conf]# vim /application/nginx/conf/nginx.conf
+worker_processes  1;
+events {
+    worker_connections  1024;
+}
+http {
+    include       mime.types;
+    default_type  application/octet-stream;
+    sendfile        on;
+    keepalive_timeout  65;
+    upstream www_server_pools {
+        server 192.168.31.7:80 weight=1;
+        server 192.168.31.8:80 weight=1;
+    }
+    server {
+        listen       80;
+        server_name  gaoqichen.com www.gaoqichen.com;
+        location / {
+            proxy_pass http://www_server_pools;
+            proxy_set_header Host $host;
+            proxy_set_header X-Forwarded-For $remote_addr;
+        }
+    }
+}
+#编辑配置文件
+
+
+3.	高可用
+
+[root@lb01 conf]# ip addr add 192.168.31.3/24 dev eth0 label eth0:0
+#为高可用增加VIP
+[root@lb01 conf]# ifconfig eth0:0
+eth0:0    Link encap:Ethernet  HWaddr 00:0C:29:7F:90:D1
+          inet addr:192.168.31.3  Bcast:0.0.0.0  Mask:255.255.255.0
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+#手动实现高可用
+
+
+[root@lb01 ~]# yum install -y keepalived
+#截止到此行，以上所有安装步骤两台负载均衡服务器均相同
+
+[root@lb01 ~]# cat /etc/keepalived/keepalived.conf
+! Configuration File for keepalived
+
+global_defs {
+   notification_email {
+      ks_linux_mail@163.com
+   }
+   notification_email_from ks_linux_mail@163.com
+   smtp_server 192.168.200.1
+   smtp_connect_timeout 30
+   router_id LVS_DEVEL
+}
+
+vrrp_instance VI_1 {
+    state MASTER
+    interface eth0
+    virtual_router_id 51
+    priority 150
+    advert_int 1
+    authentication {
+        auth_type PASS
+        auth_pass 1111
+    }
+    virtual_ipaddress {
+        192.168.31.3/24
+    }
+}
+# 主负载均衡服务器配置文件
+## LVS_DEVEL 为进程ID，主备不可以相同
+## VI_1 为实例名，主备需相同
+## state 主为MASTER，备为BACKUP
+## virtual_router_id 为实例ID，主备需相同
+## priority 为优先级，主要高于备
+## authentication 通信验证，主备需相同
+## virtual_ipaddress 为VIP，主备需相同
+
+[root@lb02 conf]# cat /etc/keepalived/keepalived.conf
+! Configuration File for keepalived
+
+global_defs {
+   notification_email {
+      ks_linux_mail@163.com
+   }
+   notification_email_from ks_linux_mail@163.com
+   smtp_server 192.168.200.1
+   smtp_connect_timeout 30
+   router_id LVS_DEVEL1
+}
+
+vrrp_instance VI_1 {
+    state BACKUP
+    interface eth0
+    virtual_router_id 51
+    priority 100
+    advert_int 1
+    authentication {
+        auth_type PASS
+        auth_pass 1111
+    }
+    virtual_ipaddress {
+        192.168.31.3/24
+    }
+}
+# 备负载均衡服务器配置文件
+
+systemctl enable keepalived.service
+systemctl start keepalived.service

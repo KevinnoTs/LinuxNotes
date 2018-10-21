@@ -200,7 +200,7 @@ RPC
 
 	nfs客户端: 	mount -t nfs -o nosuid,noexec,nodev,noatime,nodiratime,rsize=131072,wsize=131072 172.16.1.31:/data /mnt
 
-	大型网站nfs一代软件为分布式文件系统Moosefs（mfs）、GlusterFS、FastDFS
+	大型网站nfs替代软件为分布式文件系统Moosefs（mfs）、GlusterFS、FastDFS
 
 	优缺点：
 		优点：	简单易上手
@@ -213,6 +213,6 @@ RPC
 				客户端认证是基于IP和主机名，权限要根据id识别，安全性一般（内网问题不大）
 				nfs本身不对数据完整性验证，数据是明文的不加密
 				多台挂载时，连接管理维护麻烦
-				耦合度有些高，涉及同步（实时等待）和乙部（解耦）的概念
+				耦合度有些高，涉及同步（实时等待）和异步（解耦）的概念
 				nfs识别客户端用户是识别uid和gid，不识别用户名和组名
 
