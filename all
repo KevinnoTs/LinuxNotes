@@ -33,22 +33,6 @@ Linux 学习笔记
 	   Scientific support
 	   Security Tools
 
-2.	cd 进入目录（Change directory）
-	Usage: cd [dir]
-	路径：
-	相对路径：不从/根开始
-	绝对路径：从/根开始
-		/ 		为根目录
-		~ 		为用户家目录
-		. 		为本目录
-		..		为上一级目录
-		../.. 	为上一级的上一级目录
-		-		为上一次目录（$OLDPWD）
-	#cd /data
-		进入根目录下的data目录
-	#cd -
-		回到上一次所在目录
-
 3.	alias 系统别名的查看及修改
 	#alias
 		查看系统现有别名
@@ -126,22 +110,6 @@ Linux 学习笔记
 
 
 
-13.	mkdir 创建目录（Make directory）
-	Usage: mkdir [OPTION]... DIRECTORY...
-		-p 忽略报错/递归，连续创建目录
-		-v 显示创建目录的结果或过程
-	#mkdir /data
-		根目录下创建data文件夹
-	#mkdir data
-		该目录下创建data文件夹
-	#mkdir -p /data/K/test1/ /data/K/test2
-		依次在根目录下创建data，在data下创建K，在K下创建test1和test2目录
-
-14.	pwd 查看当前目录路径（Print working directory）
-		-L 显示路径，默认参数
-		-P 显示物理路径，忽略快捷方式
-	#pwd
-		查看当前目录路径，相当于echo $PWD
 
 15.	touch 创建文件或更新时间戳
 	Usage: touch [OPTION]... FILE...
@@ -155,15 +123,6 @@ Linux 学习笔记
 	#stat /data/k.txt
 		查看/data/k.txt的文件属性
 
-16.	rm 删除文件或文件夹（ReMove）
-		-f 强制删除 （Force）
-		-r 删除目录 （Recursive）
-		-i 删除前提示
-	#rm -f /data/K/test1/*
-		删除/data/K/test1目录下所有文件
-	★★★该命令无法撤销无法恢复，操作前请确认并备份★★★
-	建议如果非必要，使用mv命令移动到/tmp/目录
-	如果非要删除，建议cd进入当前目录，使用find . -type f(d) -name "" | xargs rm -i删除，进入当前路径，避免删错
 
 17.	echo 打印/输出
 		-e 激活转义字符
@@ -582,7 +541,7 @@ Linux 学习笔记
 		-b 覆盖已存在的文件目标前将目标文件备份
 		-v 详细显示命令执行的操作
 	#cp /data/k.txt /tmp/
-		复制ktxt到/tmp文件夹
+		复制k.txt到/tmp文件夹
 	#cp file /tmp/file1
 		将file文件复制到/tmp目录下并改名为file1
 	#cp -r /data/ /tmp/
